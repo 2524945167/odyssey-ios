@@ -17,7 +17,7 @@ public final class APIConfigurationViewModel {
 
     // MARK: - Dependencies
     public let store: APIConfigurationStore
-    private var resignActiveObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var resignActiveObserver: NSObjectProtocol?
 
     // MARK: - Form State
     public var apiFormat: APIFormat {
