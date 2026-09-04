@@ -5,7 +5,6 @@ import SwiftUI
 public struct APIConfigurationView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
 
     @Bindable public var viewModel: APIConfigurationViewModel
     @FocusState private var focusedField: APIFormField?
@@ -17,6 +16,14 @@ public struct APIConfigurationView: View {
 
     public var body: some View {
         Form {
+            // MARK: - 错误提示横幅
+            if let error = viewModel.errorMessage {
+                Section {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                }
+            }
+
             // MARK: - API 格式选择
             Section {
                 Picker("格式类型", selection: $viewModel.apiFormat) {
@@ -215,37 +222,9 @@ public struct APIConfigurationView: View {
         } message: {
             Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
         }
-        .alert(
-            "保存结果",
-            isPresented: Binding(
-                get: { viewModel.saveSuccessMessage != nil },
-                set: { if !$0 { viewModel.saveSuccessMessage = nil } }
-            )
-        ) {
-            Button("确定") {
-                dismiss()
-            }
-        } message: {
-            Text(viewModel.saveSuccessMessage ?? "")
-        }
-        .alert(
-            "操作失败",
-            isPresented: Binding(
-                get: { viewModel.errorMessage != nil },
-                set: { if !$0 { viewModel.errorMessage = nil } }
-            )
-        ) {
-            Button("确定") {
-                viewModel.errorMessage = nil
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            // 仅在真实场景从 active 切换到非活跃/后台时自动隐藏，避免在测试或初始化时触发
-            if oldPhase == .active && newPhase != .active {
-                viewModel.hideAPIKey()
-            }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            // 进入后台或非活跃状态时，自动防窥隐藏明文
+            viewModel.hideAPIKey()
         }
     }
 
@@ -253,7 +232,9 @@ public struct APIConfigurationView: View {
         if let errorField = viewModel.validate() {
             focusedField = errorField
         } else {
-            _ = viewModel.save()
+            if viewModel.save() {
+                dismiss()
+            }
         }
     }
 }
