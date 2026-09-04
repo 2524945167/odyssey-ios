@@ -4,7 +4,7 @@ Odyssey 是一款轻量、现代的 iOS 客户端应用。
 
 ## 当前状态
 
-**第 1 轮完成**（已建立最小 iOS 工程、XcodeGen 配置、单元测试，并通过 GitHub Actions 自动构建与验证未签名 IPA）。
+**第 2 轮进行中**（构建翻译首页与设置页 UI，建立 MVVM 架构、组件体系与轻量 ViewModel）。
 
 ## 如何触发 GitHub Actions
 
