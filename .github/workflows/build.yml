@@ -1,0 +1,48 @@
+name: Odyssey CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: xcode-27
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Environment Diagnostics (macOS & Xcode)
+        run: |
+          echo "=== macOS Version ==="
+          sw_vers
+          echo "=== Xcode Version ==="
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen &> /dev/null; then
+            echo "Installing XcodeGen via Homebrew..."
+            brew install xcodegen
+          else
+            echo "XcodeGen already installed: $(xcodegen --version)"
+          fi
+
+      - name: Run Secret Scan
+        run: |
+          chmod +x Scripts/scan_secrets.sh
+          bash Scripts/scan_secrets.sh
+
+      - name: Build, Test, and Package IPA
+        run: |
+          chmod +x Scripts/build.sh
+          bash Scripts/build.sh
+
+      - name: Upload Unsigned IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Odyssey-unsigned.ipa
+          path: build/Odyssey-unsigned.ipa
+          if-no-files-found: error

@@ -1,0 +1,40 @@
+# Xcode
+## User settings & build products
+xcuserdata/
+*.xcworkspace
+!default.xcworkspace
+*.xcuserstate
+*.xcuserdatad
+
+## Generated Xcode project (generated via xcodegen generate)
+*.xcodeproj
+
+## Build & DerivedData
+build/
+DerivedData/
+*.ipa
+Payload/
+
+## Swift Package Manager
+.build/
+.swiftpm/
+
+## OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+## Environment & Secrets
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.pfx
+*.cer
+*.key
+*.pem
+.env
+.env.*
