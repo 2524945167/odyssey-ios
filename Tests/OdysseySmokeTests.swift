@@ -1,18 +1,24 @@
 import XCTest
+import SwiftUI
 @testable import Odyssey
 
 final class OdysseySmokeTests: XCTestCase {
 
     @MainActor
-    func testContentViewInitialization() {
+    func testContentViewImageRenderer() throws {
+        let targetWidth: CGFloat = 393
+        let targetHeight: CGFloat = 852
         let view = ContentView()
-        XCTAssertNotNil(view.body, "ContentView body should instantiate properly")
-    }
+            .frame(width: targetWidth, height: targetHeight)
 
-    func testAppConfigurationSmoke() {
-        let expectedAppName = "Odyssey"
-        let expectedStatusMessage = "工程初始化成功"
-        XCTAssertEqual(expectedAppName, "Odyssey", "App name constant matches specification")
-        XCTAssertFalse(expectedStatusMessage.isEmpty, "Status message should not be empty")
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2.0
+        let uiImage = renderer.uiImage
+
+        let image = try XCTUnwrap(uiImage, "ContentView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
+        XCTAssertGreaterThan(image.size.width, 0, "渲染出的 UIImage 宽度必须大于 0")
+        XCTAssertGreaterThan(image.size.height, 0, "渲染出的 UIImage 高度必须大于 0")
+        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0, "渲染出的 UIImage 宽度应与 frame 尺寸匹配")
+        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0, "渲染出的 UIImage 高度应与 frame 尺寸匹配")
     }
 }

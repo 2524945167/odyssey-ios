@@ -31,12 +31,15 @@ PATTERNS=(
     'github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}'
     'AKIA[0-9A-Z]{16}'
     'AIza[0-9A-Za-z\-_]{35}'
+    'sk-proj-[a-zA-Z0-9_\-]{20,}'
+    'sk-svcacct-[a-zA-Z0-9_\-]{20,}'
+    'sk-ant-api[a-zA-Z0-9_\-]{20,}'
     'sk-[a-zA-Z0-9]{32,}'
 )
 
 while IFS= read -r file; do
     # Skip the scanner itself, symlinks/missing files, and test fixtures
-    if [[ "$file" == "Scripts/scan_secrets.sh" ]] || [[ "$file" =~ (^|/)[fF]ixtures(/|$) ]]; then
+    if [[ "$file" == *"scan_secrets.sh"* ]] || [[ "$file" =~ (^|/)[fF]ixtures(/|$) ]]; then
         continue
     fi
 
