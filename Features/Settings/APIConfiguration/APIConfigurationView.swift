@@ -185,16 +185,46 @@ public struct APIConfigurationView: View {
                 }
             }
 
-            // MARK: - 破坏性清除操作
+            // MARK: - 破坏性清除操作（二次确认保护）
             if viewModel.hasSavedAPIKey {
-                Section {
-                    Button(role: .destructive) {
-                        viewModel.showClearConfirmation = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("清除已保存的 API Key")
-                            Spacer()
+                if viewModel.showClearConfirmation {
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("确定要清除已保存的 API Key 吗？", systemImage: "exclamationmark.triangle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.red)
+                            Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            HStack {
+                                Button(role: .destructive) {
+                                    viewModel.clearAPIKey()
+                                    viewModel.showClearConfirmation = false
+                                } label: {
+                                    Text("确认清除")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.red)
+                                }
+                                Spacer()
+                                Button("取消") {
+                                    viewModel.showClearConfirmation = false
+                                }
+                                .foregroundStyle(.secondary)
+                            }
+                            .padding(.top, 4)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                } else {
+                    Section {
+                        Button(role: .destructive) {
+                            viewModel.showClearConfirmation = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("清除已保存的 API Key")
+                                Spacer()
+                            }
                         }
                     }
                 }
@@ -209,22 +239,6 @@ public struct APIConfigurationView: View {
                 }
                 .fontWeight(.semibold)
             }
-        }
-        .confirmationDialog(
-            "确定要清除已保存的 API Key 吗？",
-            isPresented: $viewModel.showClearConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("清除 API Key", role: .destructive) {
-                viewModel.clearAPIKey()
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-            // 进入后台或非活跃状态时，自动防窥隐藏明文
-            viewModel.hideAPIKey()
         }
     }
 

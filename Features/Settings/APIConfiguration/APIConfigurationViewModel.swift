@@ -1,5 +1,6 @@
 import SwiftUI
 import Observation
+import UIKit
 
 /// API 配置输入字段枚举，用于 @FocusState 聚焦定位
 public enum APIFormField: Hashable, Sendable {
@@ -16,6 +17,7 @@ public final class APIConfigurationViewModel {
 
     // MARK: - Dependencies
     public let store: APIConfigurationStore
+    private var resignActiveObserver: NSObjectProtocol?
 
     // MARK: - Form State
     public var apiFormat: APIFormat {
@@ -57,6 +59,22 @@ public final class APIConfigurationViewModel {
 
         self.hasSavedAPIKey = store.hasSavedAPIKey
         self.apiKeyInput = ""
+
+        self.resignActiveObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.hideAPIKey()
+            }
+        }
+    }
+
+    deinit {
+        if let observer = resignActiveObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Format Change & Auto-fill
