@@ -90,7 +90,7 @@ public struct OdysseyBrandTitle: View {
     @ScaledMetric(relativeTo: .headline) private var oSize: CGFloat = 16.5
     @ScaledMetric(relativeTo: .headline) private var strokeWidth: CGFloat = 2.2
     @ScaledMetric(relativeTo: .headline) private var tipLength: CGFloat = 3.0
-    @ScaledMetric(relativeTo: .headline) private var letterSpacing: CGFloat = 0.8
+    @ScaledMetric(relativeTo: .headline) private var letterSpacing: CGFloat = -1.5
     @ScaledMetric(relativeTo: .headline) private var baselineOffset: CGFloat = 1.0
 
     public init() {}

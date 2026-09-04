@@ -2,35 +2,28 @@ import SwiftUI
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    public let store: APIConfigurationStore
+    @State private var configurationSummary: String = "未配置"
 
-    public init() {}
+    public init(store: APIConfigurationStore = APIConfigurationStore()) {
+        self.store = store
+        _configurationSummary = State(initialValue: store.summaryText)
+    }
 
     public var body: some View {
         NavigationStack {
             Form {
                 Section("API 配置") {
                     NavigationLink {
-                        PlaceholderDetailView(title: "API 格式", icon: "slider.horizontal.3")
+                        APIConfigurationView(viewModel: APIConfigurationViewModel(store: store))
                     } label: {
-                        Label("API 格式", systemImage: "slider.horizontal.3")
-                    }
-
-                    NavigationLink {
-                        PlaceholderDetailView(title: "Base URL", icon: "link")
-                    } label: {
-                        Label("Base URL", systemImage: "link")
-                    }
-
-                    NavigationLink {
-                        PlaceholderDetailView(title: "API Key", icon: "key")
-                    } label: {
-                        Label("API Key", systemImage: "key")
-                    }
-
-                    NavigationLink {
-                        PlaceholderDetailView(title: "Model ID", icon: "cpu")
-                    } label: {
-                        Label("Model ID", systemImage: "cpu")
+                        HStack {
+                            Label("API 配置", systemImage: "slider.horizontal.3")
+                            Spacer()
+                            Text(configurationSummary)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     NavigationLink {
@@ -78,6 +71,9 @@ public struct SettingsView: View {
                     .fontWeight(.semibold)
                 }
             }
+            .onAppear {
+                configurationSummary = store.summaryText
+            }
         }
     }
 }
@@ -101,11 +97,12 @@ public struct PlaceholderDetailView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("将在后续轮次实现")
-                .font(.subheadline)
+            Text("此项功能将在后续轮次中实现，当前仅作为占位预览展示。")
+                .font(.body)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
         }
-        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(title)

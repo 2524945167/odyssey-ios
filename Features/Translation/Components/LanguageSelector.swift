@@ -34,7 +34,7 @@ public struct LanguageSelector: View {
                 }
                 onSwap?()
             } label: {
-                Image(systemName: "arrow.right")
+                Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.blue)
                     .padding(6)
