@@ -2,42 +2,52 @@ import SwiftUI
 
 public struct LanguageSelector: View {
     @Bindable public var viewModel: TranslationViewModel
+    public var onShowLanguageHint: () -> Void
 
-    public init(viewModel: TranslationViewModel) {
+    public init(viewModel: TranslationViewModel, onShowLanguageHint: @escaping () -> Void = {}) {
         self.viewModel = viewModel
+        self.onShowLanguageHint = onShowLanguageHint
     }
 
     public var body: some View {
-        HStack {
-            Text(viewModel.sourceLanguage.displayName)
-                .font(.headline)
-                .foregroundColor(.blue)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color(uiColor: .secondarySystemBackground))
-                .cornerRadius(10)
+        HStack(spacing: 12) {
+            Button {
+                onShowLanguageHint()
+            } label: {
+                Text(viewModel.sourceLanguage.shortDisplayName)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+            }
+            .accessibilityLabel(viewModel.sourceLanguage.displayName)
 
             Button {
-                viewModel.swapLanguages()
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    viewModel.swapLanguages()
+                }
             } label: {
-                Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 16, weight: .bold))
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.blue)
-                    .padding(10)
-                    .background(Color(uiColor: .secondarySystemBackground))
-                    .clipShape(Circle())
+                    .padding(6)
             }
             .accessibilityLabel("交换语言")
 
-            Text(viewModel.targetLanguage.displayName)
-                .font(.headline)
-                .foregroundColor(.blue)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color(uiColor: .secondarySystemBackground))
-                .cornerRadius(10)
+            Button {
+                onShowLanguageHint()
+            } label: {
+                Text(viewModel.targetLanguage.shortDisplayName)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+            }
+            .accessibilityLabel(viewModel.targetLanguage.displayName)
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .glassEffect(.regular, in: Capsule())
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 public struct TranslationView: View {
     @State public var viewModel: TranslationViewModel
     @State private var showingSettings: Bool = false
+    @State private var showLanguageToast: Bool = false
 
     @MainActor
     public init(viewModel: TranslationViewModel = TranslationViewModel()) {
@@ -11,38 +12,59 @@ public struct TranslationView: View {
 
     public var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    LanguageSelector(viewModel: viewModel)
-                        .padding(.top, 8)
+            ZStack(alignment: .top) {
+                ScrollView {
+                    GlassEffectContainer(spacing: 14) {
+                        VStack(spacing: 14) {
+                            TopBrandBar {
+                                showingSettings = true
+                            }
 
-                    SourceTextPanel(viewModel: viewModel)
+                            LanguageSelector(viewModel: viewModel) {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                    showLanguageToast = true
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        showLanguageToast = false
+                                    }
+                                }
+                            }
 
-                    TranslatedTextPanel(viewModel: viewModel)
-
-                    TranslateButton(viewModel: viewModel) {
-                        Task {
-                            await viewModel.performMockTranslation()
+                            UnifiedTranslationPanel(viewModel: viewModel)
                         }
                     }
                     .padding(.top, 4)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 16)
+                }
+                .scrollDismissesKeyboard(.interactively)
+
+                // 轻量语言选择提示 Toast
+                if showLanguageToast {
+                    Text("完整语言选择将在后续实现")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .glassEffect(.regular, in: Capsule())
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .padding(.top, 52)
+                        .zIndex(10)
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
             .background(Color(uiColor: .systemBackground))
-            .navigationTitle("Odyssey")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .foregroundColor(.blue)
+            .navigationBarHidden(true)
+            .safeAreaInset(edge: .bottom) {
+                TranslateButton(viewModel: viewModel) {
+                    Task {
+                        await viewModel.performMockTranslation()
                     }
-                    .accessibilityLabel("打开设置")
                 }
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                .background(.ultraThinMaterial.opacity(0.35))
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()

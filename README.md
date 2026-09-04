@@ -4,7 +4,7 @@ Odyssey 是一款轻量、现代的 iOS 客户端应用。
 
 ## 当前状态
 
-**第 2 轮完成**（已建立翻译首页与设置页 UI、MVVM 架构与轻量 ViewModel，并通过 GitHub Actions 自动构建与验证未签名 IPA）。
+**第 2.5 轮进行中**（Odyssey 品牌化 Liquid Glass UI 重构，紧凑顶部栏、单一玻璃翻译容器、安全区悬浮翻译按钮及原生 Form 设置页）。
 
 ## 如何触发 GitHub Actions
 

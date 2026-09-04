@@ -7,23 +7,65 @@ public struct SettingsView: View {
 
     public var body: some View {
         NavigationStack {
-            List {
+            Form {
                 Section("API 配置") {
-                    SettingsRow(title: "API 格式", status: "后续轮次实现")
-                    SettingsRow(title: "Base URL", status: "后续轮次实现")
-                    SettingsRow(title: "API Key", status: "后续轮次实现")
-                    SettingsRow(title: "Model ID", status: "后续轮次实现")
-                    SettingsRow(title: "测试连接", status: "后续轮次实现")
+                    NavigationLink {
+                        PlaceholderDetailView(title: "API 格式", icon: "slider.horizontal.3")
+                    } label: {
+                        Label("API 格式", systemImage: "slider.horizontal.3")
+                    }
+
+                    NavigationLink {
+                        PlaceholderDetailView(title: "Base URL", icon: "link")
+                    } label: {
+                        Label("Base URL", systemImage: "link")
+                    }
+
+                    NavigationLink {
+                        PlaceholderDetailView(title: "API Key", icon: "key")
+                    } label: {
+                        Label("API Key", systemImage: "key")
+                    }
+
+                    NavigationLink {
+                        PlaceholderDetailView(title: "Model ID", icon: "cpu")
+                    } label: {
+                        Label("Model ID", systemImage: "cpu")
+                    }
+
+                    NavigationLink {
+                        PlaceholderDetailView(title: "测试连接", icon: "antenna.radiowaves.left.and.right")
+                    } label: {
+                        Label("测试连接", systemImage: "antenna.radiowaves.left.and.right")
+                    }
                 }
 
                 Section("翻译设置") {
-                    SettingsRow(title: "术语表", status: "后续轮次实现")
-                    SettingsRow(title: "额外要求", status: "后续轮次实现")
+                    NavigationLink {
+                        PlaceholderDetailView(title: "术语表", icon: "character.book.closed")
+                    } label: {
+                        Label("术语表", systemImage: "character.book.closed")
+                    }
+
+                    NavigationLink {
+                        PlaceholderDetailView(title: "额外要求", icon: "text.badge.plus")
+                    } label: {
+                        Label("额外要求", systemImage: "text.badge.plus")
+                    }
                 }
 
                 Section("隐私与诊断") {
-                    SettingsRow(title: "诊断信息", status: "后续轮次实现")
-                    SettingsRow(title: "清除本机设置", status: "后续轮次实现")
+                    NavigationLink {
+                        PlaceholderDetailView(title: "诊断信息", icon: "stethoscope")
+                    } label: {
+                        Label("诊断信息", systemImage: "stethoscope")
+                    }
+
+                    NavigationLink {
+                        PlaceholderDetailView(title: "清除本机设置", icon: "trash")
+                    } label: {
+                        Label("清除本机设置", systemImage: "trash")
+                    }
                 }
             }
             .navigationTitle("设置")
@@ -40,20 +82,34 @@ public struct SettingsView: View {
     }
 }
 
-private struct SettingsRow: View {
-    let title: String
-    let status: String
+public struct PlaceholderDetailView: View {
+    public let title: String
+    public let icon: String
 
-    var body: some View {
-        HStack {
+    public init(title: String, icon: String) {
+        self.title = title
+        self.icon = icon
+    }
+
+    public var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: icon)
+                .font(.system(size: 56))
+                .foregroundColor(.blue)
+
             Text(title)
-                .font(.body)
-                .foregroundColor(.primary)
-            Spacer()
-            Text(status)
+                .font(.title2)
+                .fontWeight(.bold)
+
+            Text("将在后续轮次实现")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -17,23 +17,21 @@ public struct TranslateButton: View {
                 if viewModel.isTranslating {
                     ProgressView()
                         .tint(.white)
-                    Text("正在翻译...")
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                    Text("正在翻译")
+                        .font(.system(size: 16, weight: .semibold))
                 } else {
                     Text("翻译")
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 16, weight: .semibold))
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(viewModel.canTranslate ? Color.blue : Color(uiColor: .systemGray4))
-            .foregroundColor(.white)
-            .cornerRadius(14)
+            .frame(height: 50)
         }
+        .buttonStyle(.glassProminent)
+        .tint(.blue)
         .disabled(!viewModel.canTranslate)
-        .padding(.horizontal)
+        .opacity(viewModel.canTranslate ? 1.0 : 0.4)
+        .padding(.horizontal, 20)
         .accessibilityLabel("执行翻译")
     }
 }
