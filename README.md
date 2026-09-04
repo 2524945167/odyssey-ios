@@ -4,7 +4,7 @@ Odyssey 是一款轻量、现代的 iOS 客户端应用。
 
 ## 当前状态
 
-**第 1 轮进行中**（建立最小 iOS 工程、XcodeGen 配置、单元测试与 GitHub Actions 自动编译未签名 IPA 流水线）。
+**第 1 轮完成**（已建立最小 iOS 工程、XcodeGen 配置、单元测试，并通过 GitHub Actions 自动构建与验证未签名 IPA）。
 
 ## 如何触发 GitHub Actions
 
