@@ -2,23 +2,19 @@ import SwiftUI
 
 public struct TopBrandBar: View {
     public var onOpenSettings: () -> Void
+    public var onTapBackground: (() -> Void)?
 
-    public init(onOpenSettings: @escaping () -> Void) {
+    public init(
+        onOpenSettings: @escaping () -> Void,
+        onTapBackground: (() -> Void)? = nil
+    ) {
         self.onOpenSettings = onOpenSettings
+        self.onTapBackground = onTapBackground
     }
 
     public var body: some View {
         HStack {
-            HStack(spacing: 6) {
-                Image(systemName: "location.north.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.blue)
-
-                Text("Odyssey")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-            }
+            OdysseyBrandTitle()
 
             Spacer()
 
@@ -35,6 +31,10 @@ public struct TopBrandBar: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 44)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTapBackground?()
+        }
     }
 }
 

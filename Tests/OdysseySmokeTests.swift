@@ -187,4 +187,36 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0, "深色模式渲染宽度应与 frame 尺寸匹配")
         XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0, "深色模式渲染高度应与 frame 尺寸匹配")
     }
+
+    // 14. OdysseyBrandTitle 在浅色模式下可通过 ImageRenderer 成功渲染
+    @MainActor
+    func testBrandTitleImageRendererLight() throws {
+        let view = OdysseyBrandTitle()
+            .padding()
+            .preferredColorScheme(.light)
+
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2.0
+        let uiImage = renderer.uiImage
+
+        let image = try XCTUnwrap(uiImage, "浅色模式下 OdysseyBrandTitle 必须成功通过 ImageRenderer 渲染出非空 UIImage")
+        XCTAssertGreaterThan(image.size.width, 0, "品牌组件浅色渲染宽度必须大于 0")
+        XCTAssertGreaterThan(image.size.height, 0, "品牌组件浅色渲染高度必须大于 0")
+    }
+
+    // 15. OdysseyBrandTitle 在深色模式下可通过 ImageRenderer 成功渲染
+    @MainActor
+    func testBrandTitleImageRendererDark() throws {
+        let view = OdysseyBrandTitle()
+            .padding()
+            .preferredColorScheme(.dark)
+
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 2.0
+        let uiImage = renderer.uiImage
+
+        let image = try XCTUnwrap(uiImage, "深色模式下 OdysseyBrandTitle 必须成功通过 ImageRenderer 渲染出非空 UIImage")
+        XCTAssertGreaterThan(image.size.width, 0, "品牌组件深色渲染宽度必须大于 0")
+        XCTAssertGreaterThan(image.size.height, 0, "品牌组件深色渲染高度必须大于 0")
+    }
 }

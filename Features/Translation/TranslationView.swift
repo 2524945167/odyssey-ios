@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct TranslationView: View {
     @State public var viewModel: TranslationViewModel
+    @FocusState private var isInputFocused: Bool
     @State private var showingSettings: Bool = false
     @State private var showLanguageToast: Bool = false
 
@@ -10,33 +11,70 @@ public struct TranslationView: View {
         _viewModel = State(initialValue: viewModel)
     }
 
+    private func dismissKeyboard() {
+        if isInputFocused {
+            isInputFocused = false
+        }
+    }
+
     public var body: some View {
         ZStack(alignment: .top) {
+            // 根背景响应层：点击页面任意非交互空白区域收起键盘
+            Color(uiColor: .systemBackground)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    dismissKeyboard()
+                }
+
             ScrollView {
                 GlassEffectContainer(spacing: 14) {
                     VStack(spacing: 14) {
-                        TopBrandBar {
-                            showingSettings = true
-                        }
-
-                        LanguageSelector(viewModel: viewModel) {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                showLanguageToast = true
+                        TopBrandBar(
+                            onOpenSettings: {
+                                dismissKeyboard()
+                                showingSettings = true
+                            },
+                            onTapBackground: {
+                                dismissKeyboard()
                             }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                withAnimation(.easeOut(duration: 0.3)) {
-                                    showLanguageToast = false
+                        )
+
+                        LanguageSelector(
+                            viewModel: viewModel,
+                            onShowLanguageHint: {
+                                dismissKeyboard()
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                                    showLanguageToast = true
                                 }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    withAnimation(.easeOut(duration: 0.3)) {
+                                        showLanguageToast = false
+                                    }
+                                }
+                            },
+                            onSwap: {
+                                dismissKeyboard()
                             }
-                        }
+                        )
 
-                        UnifiedTranslationPanel(viewModel: viewModel)
+                        UnifiedTranslationPanel(
+                            viewModel: viewModel,
+                            isInputFocused: $isInputFocused
+                        )
                     }
                 }
                 .padding(.top, 4)
                 .padding(.bottom, 16)
             }
             .scrollDismissesKeyboard(.interactively)
+            .background {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        dismissKeyboard()
+                    }
+            }
 
             // 轻量语言选择提示 Toast
             if showLanguageToast {
@@ -56,6 +94,7 @@ public struct TranslationView: View {
         .background(Color(uiColor: .systemBackground))
         .safeAreaInset(edge: .bottom) {
             TranslateButton(viewModel: viewModel) {
+                dismissKeyboard()
                 Task {
                     await viewModel.performMockTranslation()
                 }
@@ -63,6 +102,10 @@ public struct TranslationView: View {
             .padding(.top, 8)
             .padding(.bottom, 8)
             .background(.ultraThinMaterial.opacity(0.35))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                dismissKeyboard()
+            }
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()

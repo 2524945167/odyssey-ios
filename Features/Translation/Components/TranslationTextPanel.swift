@@ -2,11 +2,15 @@ import SwiftUI
 
 public struct UnifiedTranslationPanel: View {
     @Bindable public var viewModel: TranslationViewModel
-    @FocusState private var isSourceFocused: Bool
+    var isInputFocused: FocusState<Bool>.Binding?
     @State private var showCopiedAlert: Bool = false
 
-    public init(viewModel: TranslationViewModel) {
+    public init(
+        viewModel: TranslationViewModel,
+        isInputFocused: FocusState<Bool>.Binding? = nil
+    ) {
         self.viewModel = viewModel
+        self.isInputFocused = isInputFocused
     }
 
     public var body: some View {
@@ -21,6 +25,7 @@ public struct UnifiedTranslationPanel: View {
                     Spacer()
                     if !viewModel.sourceText.isEmpty {
                         Button {
+                            isInputFocused?.wrappedValue = false
                             viewModel.clearSource()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
@@ -41,11 +46,18 @@ public struct UnifiedTranslationPanel: View {
                             .allowsHitTesting(false)
                     }
 
-                    TextEditor(text: $viewModel.sourceText)
-                        .font(.body)
-                        .focused($isSourceFocused)
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 110)
+                    if let isInputFocused {
+                        TextEditor(text: $viewModel.sourceText)
+                            .font(.body)
+                            .focused(isInputFocused)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 110)
+                    } else {
+                        TextEditor(text: $viewModel.sourceText)
+                            .font(.body)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 110)
+                    }
                 }
             }
             .padding(16)
@@ -56,7 +68,7 @@ public struct UnifiedTranslationPanel: View {
                 .frame(height: 0.5)
                 .padding(.horizontal, 12)
 
-            // 下半部分：译文显示区
+            // 下半部分：译文显示区（点击可收起键盘）
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(viewModel.targetLanguage.displayName)
@@ -65,6 +77,7 @@ public struct UnifiedTranslationPanel: View {
                         .foregroundColor(.secondary)
                     Spacer()
                     Button {
+                        isInputFocused?.wrappedValue = false
                         viewModel.copyTranslation()
                         withAnimation(.easeInOut(duration: 0.2)) {
                             showCopiedAlert = true
@@ -110,6 +123,10 @@ public struct UnifiedTranslationPanel: View {
                 }
             }
             .padding(16)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isInputFocused?.wrappedValue = false
+            }
         }
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 26))
         .padding(.horizontal, 16)

@@ -3,10 +3,16 @@ import SwiftUI
 public struct LanguageSelector: View {
     public var viewModel: TranslationViewModel
     public var onShowLanguageHint: () -> Void
+    public var onSwap: (() -> Void)?
 
-    public init(viewModel: TranslationViewModel, onShowLanguageHint: @escaping () -> Void = {}) {
+    public init(
+        viewModel: TranslationViewModel,
+        onShowLanguageHint: @escaping () -> Void = {},
+        onSwap: (() -> Void)? = nil
+    ) {
         self.viewModel = viewModel
         self.onShowLanguageHint = onShowLanguageHint
+        self.onSwap = onSwap
     }
 
     public var body: some View {
@@ -26,6 +32,7 @@ public struct LanguageSelector: View {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     viewModel.swapLanguages()
                 }
+                onSwap?()
             } label: {
                 Image(systemName: "arrow.right")
                     .font(.system(size: 12, weight: .bold))
