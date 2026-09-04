@@ -8,10 +8,16 @@ public struct APIConfiguration: Codable, Equatable, Sendable {
     public var baseURL: String
     public var modelID: String
 
+    public static let `default` = APIConfiguration(
+        apiFormat: .openAIResponses,
+        baseURL: "https://api.openai.com",
+        modelID: "gpt-4o"
+    )
+
     public init(
         apiFormat: APIFormat = .default,
         baseURL: String = APIFormat.default.defaultBaseURL ?? "",
-        modelID: String = ""
+        modelID: String = "gpt-4o"
     ) {
         self.apiFormat = apiFormat
         self.baseURL = baseURL

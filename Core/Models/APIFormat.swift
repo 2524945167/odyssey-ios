@@ -46,9 +46,9 @@ public enum APIFormat: String, Codable, CaseIterable, Identifiable, Sendable {
     public var defaultBaseURL: String? {
         switch self {
         case .openAIResponses, .openAIChatCompletions:
-            return "https://api.openai.com/v1"
+            return "https://api.openai.com"
         case .anthropicMessages:
-            return "https://api.anthropic.com/v1"
+            return "https://api.anthropic.com"
         case .openAICompatible:
             return nil
         }
