@@ -1,7 +1,7 @@
 import SwiftUI
 
 public struct LanguageSelector: View {
-    @Bindable public var viewModel: TranslationViewModel
+    public var viewModel: TranslationViewModel
     public var onShowLanguageHint: () -> Void
 
     public init(viewModel: TranslationViewModel, onShowLanguageHint: @escaping () -> Void = {}) {
