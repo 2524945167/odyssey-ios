@@ -1,25 +1,26 @@
 import UIKit
 
+@MainActor
 public protocol ClipboardWriting: Sendable {
     func setString(_ string: String)
     func getString() -> String?
 }
 
+@MainActor
 public final class SystemClipboardWriter: ClipboardWriting {
     public init() {}
 
-    @MainActor
     public func setString(_ string: String) {
         UIPasteboard.general.string = string
     }
 
-    @MainActor
     public func getString() -> String? {
         UIPasteboard.general.string
     }
 }
 
-public final class MockClipboardWriter: ClipboardWriting, @unchecked Sendable {
+@MainActor
+public final class MockClipboardWriter: ClipboardWriting {
     public var storedString: String?
 
     public init(storedString: String? = nil) {

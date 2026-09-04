@@ -4,6 +4,7 @@ public struct TranslationView: View {
     @State public var viewModel: TranslationViewModel
     @State private var showingSettings: Bool = false
 
+    @MainActor
     public init(viewModel: TranslationViewModel = TranslationViewModel()) {
         _viewModel = State(initialValue: viewModel)
     }

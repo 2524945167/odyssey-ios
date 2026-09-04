@@ -1,8 +1,10 @@
 import SwiftUI
 
 public struct ContentView: View {
+    @MainActor
     public init() {}
 
+    @MainActor
     public var body: some View {
         TranslationView()
     }
