@@ -3,11 +3,13 @@ import SwiftUI
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     public let store: APIConfigurationStore
-    @State private var configurationSummary: String = "未配置"
 
     public init(store: APIConfigurationStore = APIConfigurationStore()) {
         self.store = store
-        _configurationSummary = State(initialValue: store.summaryText)
+    }
+
+    private var configurationSummary: String {
+        store.summaryText
     }
 
     public var body: some View {
@@ -71,9 +73,6 @@ public struct SettingsView: View {
                     .fontWeight(.semibold)
                 }
             }
-            .onAppear {
-                configurationSummary = store.summaryText
-            }
         }
     }
 }
@@ -97,12 +96,11 @@ public struct PlaceholderDetailView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("此项功能将在后续轮次中实现，当前仅作为占位预览展示。")
-                .font(.body)
+            Text("将在后续轮次实现")
+                .font(.subheadline)
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
         }
+        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(title)

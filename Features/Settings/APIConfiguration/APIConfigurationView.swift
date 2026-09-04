@@ -7,12 +7,12 @@ public struct APIConfigurationView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
 
-    @State public var viewModel: APIConfigurationViewModel
+    @Bindable public var viewModel: APIConfigurationViewModel
     @FocusState private var focusedField: APIFormField?
 
     @MainActor
     public init(viewModel: APIConfigurationViewModel) {
-        _viewModel = State(initialValue: viewModel)
+        self.viewModel = viewModel
     }
 
     public var body: some View {
@@ -24,7 +24,7 @@ public struct APIConfigurationView: View {
                         Text(format.displayName).tag(format)
                     }
                 }
-                .pickerStyle(.navigationLink)
+                .pickerStyle(.menu)
             } header: {
                 Text("API 协议格式")
             } footer: {
@@ -241,9 +241,9 @@ public struct APIConfigurationView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
-        .onChange(of: scenePhase) { _, newPhase in
-            // 进入后台或非活跃状态时，自动防窥隐藏明文
-            if newPhase != .active {
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            // 仅在真实场景从 active 切换到非活跃/后台时自动隐藏，避免在测试或初始化时触发
+            if oldPhase == .active && newPhase != .active {
                 viewModel.hideAPIKey()
             }
         }
