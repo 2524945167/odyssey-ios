@@ -16,6 +16,7 @@ public enum APIFormField: Hashable, Sendable {
 public final class APIConfigurationViewModel {
 
     // MARK: - Dependencies
+    public let store: APIConfigurationStore
     @ObservationIgnored
     nonisolated(unsafe) private var resignActiveObserver: (any NSObjectProtocol)?
 
