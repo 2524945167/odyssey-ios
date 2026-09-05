@@ -5,6 +5,7 @@ import SwiftUI
 public struct APIConfigurationView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.enablesFocus) private var enablesFocus
 
     @Bindable public var viewModel: APIConfigurationViewModel
     @FocusState private var focusedField: APIFormField?
@@ -58,12 +59,20 @@ public struct APIConfigurationView: View {
                         }
                     }
 
-                    TextField("https://api.example.com", text: $viewModel.baseURL)
-                        .focused($focusedField, equals: .baseURL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                        .font(.body)
+                    if enablesFocus {
+                        TextField("https://api.example.com", text: $viewModel.baseURL)
+                            .focused($focusedField, equals: .baseURL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                            .font(.body)
+                    } else {
+                        TextField("https://api.example.com", text: $viewModel.baseURL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .keyboardType(.URL)
+                            .font(.body)
+                    }
 
                     if let error = viewModel.baseURLValidationError {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -79,20 +88,20 @@ public struct APIConfigurationView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Spacer()
-                        if viewModel.modelID != "gpt-4o" {
-                            Button("恢复默认") {
-                                viewModel.resetModelIDToDefault()
-                            }
-                            .font(.caption)
-                            .buttonStyle(.borderless)
-                        }
                     }
 
-                    TextField("例如 gpt-4o", text: $viewModel.modelID)
-                        .focused($focusedField, equals: .modelID)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .font(.body)
+                    if enablesFocus {
+                        TextField("例如 gpt-4o", text: $viewModel.modelID)
+                            .focused($focusedField, equals: .modelID)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.body)
+                    } else {
+                        TextField("例如 gpt-4o", text: $viewModel.modelID)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.body)
+                    }
 
                     if let error = viewModel.modelIDValidationError {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -125,23 +134,43 @@ public struct APIConfigurationView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         if viewModel.isAPIKeyVisible {
-                            TextField(
-                                viewModel.hasSavedAPIKey ? "输入新 Key 以替换现有密钥" : "输入 API Key",
-                                text: $viewModel.apiKeyInput
-                            )
-                            .focused($focusedField, equals: .apiKey)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.body)
+                            if enablesFocus {
+                                TextField(
+                                    viewModel.hasSavedAPIKey ? "输入新 Key 以替换现有密钥" : "输入 API Key",
+                                    text: $viewModel.apiKeyInput
+                                )
+                                .focused($focusedField, equals: .apiKey)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .font(.body)
+                            } else {
+                                TextField(
+                                    viewModel.hasSavedAPIKey ? "输入新 Key 以替换现有密钥" : "输入 API Key",
+                                    text: $viewModel.apiKeyInput
+                                )
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .font(.body)
+                            }
                         } else {
-                            SecureField(
-                                viewModel.hasSavedAPIKey ? "输入新 Key 以替换现有密钥" : "输入 API Key",
-                                text: $viewModel.apiKeyInput
-                            )
-                            .focused($focusedField, equals: .apiKey)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.body)
+                            if enablesFocus {
+                                SecureField(
+                                    viewModel.hasSavedAPIKey ? "输入新 Key 以替换现有密钥" : "输入 API Key",
+                                    text: $viewModel.apiKeyInput
+                                )
+                                .focused($focusedField, equals: .apiKey)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .font(.body)
+                            } else {
+                                SecureField(
+                                    viewModel.hasSavedAPIKey ? "输入新 Key 以替换现有密钥" : "输入 API Key",
+                                    text: $viewModel.apiKeyInput
+                                )
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .font(.body)
+                            }
                         }
 
                         Button {
@@ -185,48 +214,19 @@ public struct APIConfigurationView: View {
                 }
             }
 
-            // MARK: - 破坏性清除操作（二次确认保护）
+            // MARK: - 破坏性清除操作（系统二次确认保护）
             if viewModel.hasSavedAPIKey {
-                if viewModel.showClearConfirmation {
-                    Section {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label("确定要清除已保存的 API Key 吗？", systemImage: "exclamationmark.triangle.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.red)
-                            Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            HStack {
-                                Button(role: .destructive) {
-                                    viewModel.clearAPIKey()
-                                    viewModel.showClearConfirmation = false
-                                } label: {
-                                    Text("确认清除")
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.red)
-                                }
-                                Spacer()
-                                Button("取消") {
-                                    viewModel.showClearConfirmation = false
-                                }
-                                .foregroundStyle(.secondary)
-                            }
-                            .padding(.top, 4)
-                        }
-                        .padding(.vertical, 2)
-                    }
-                } else {
-                    Section {
-                        Button(role: .destructive) {
-                            viewModel.showClearConfirmation = true
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Text("清除已保存的 API Key")
-                                Spacer()
-                            }
+                Section {
+                    Button(role: .destructive) {
+                        handleClearButtonTapped()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("清除已保存的 API Key")
+                            Spacer()
                         }
                     }
+                    .buttonStyle(.borderless)
                 }
             }
         }
@@ -240,15 +240,49 @@ public struct APIConfigurationView: View {
                 .fontWeight(.semibold)
             }
         }
+        .confirmationDialog(
+            "确定要清除已保存的 API Key 吗？",
+            isPresented: $viewModel.showClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("清除 API Key", role: .destructive) {
+                performConfirmClear()
+            }
+            Button("取消", role: .cancel) {
+                performCancelClear()
+            }
+        } message: {
+            Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
+        }
     }
 
     private func handleSave() {
         if let errorField = viewModel.validate() {
-            focusedField = errorField
+            if enablesFocus {
+                focusedField = errorField
+            }
         } else {
             if viewModel.save() {
                 dismiss()
             }
         }
+    }
+
+    // MARK: - 破坏性清除按钮交互方法（供 UI 回调与自动化测试精确验证）
+
+    /// 点击“清除已保存的 API Key”按钮，调出系统确认对话框（不执行删除）
+    public func handleClearButtonTapped() {
+        viewModel.showClearConfirmation = true
+    }
+
+    /// 用户在确认对话框中点击“清除 API Key”回调（唯一执行删除的入口）
+    public func performConfirmClear() {
+        viewModel.clearAPIKey()
+        viewModel.showClearConfirmation = false
+    }
+
+    /// 用户在确认对话框中点击“取消”或点击外部关闭回调（绝对不执行删除）
+    public func performCancelClear() {
+        viewModel.showClearConfirmation = false
     }
 }

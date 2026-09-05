@@ -35,7 +35,11 @@ public final class APIConfigurationStore: Sendable {
         guard isConfigured, let config = configurationStorage.loadConfiguration() else {
             return "未配置"
         }
-        return "\(config.apiFormat.displayName) · \(config.modelID)"
+        let trimmedModel = config.modelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedModel.isEmpty {
+            return config.apiFormat.displayName
+        }
+        return "\(config.apiFormat.displayName) · \(trimmedModel)"
     }
 
     /// 保存配置与可选的新 API Key

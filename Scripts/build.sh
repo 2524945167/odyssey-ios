@@ -92,8 +92,20 @@ if [[ "$BUNDLE_ID" != "com.kupetis.odyssey" ]]; then
 fi
 echo "✓ Bundle ID successfully verified as com.kupetis.odyssey"
 
+# 6.4 Calculate and print SHA-256 of internal IPA
+echo "==> Computing SHA-256 for internal unsigned IPA..."
+if command -v shasum >/dev/null 2>&1; then
+    IPA_SHA256=$(shasum -a 256 "$IPA_PATH" | awk '{print $1}')
+elif command -v sha256sum >/dev/null 2>&1; then
+    IPA_SHA256=$(sha256sum "$IPA_PATH" | awk '{print $1}')
+else
+    IPA_SHA256=$(openssl dgst -sha256 "$IPA_PATH" | awk '{print $NF}')
+fi
+echo "✓ Internal IPA SHA-256: $IPA_SHA256"
+
 echo "=================================================="
 echo "==> Odyssey Build, Test, and Packaging Completed Successfully!"
 echo "==> Output: $IPA_PATH"
+echo "==> Internal IPA SHA-256: $IPA_SHA256"
 echo "=================================================="
 exit 0

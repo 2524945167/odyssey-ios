@@ -19,31 +19,40 @@ public final class SystemKeychainService: KeychainServiceProtocol, Sendable {
         self.account = account
     }
 
+    /// 安全保存 API Key
+    /// 严禁先 SecItemDelete 再 SecItemAdd。已存在时使用 SecItemUpdate；不存在时使用 SecItemAdd。
+    /// 更新失败时绝不删除原密钥，确保原凭据完好保留。
     public func saveAPIKey(_ apiKey: String) throws {
         guard let data = apiKey.data(using: .utf8) else {
             throw KeychainError.conversionError
         }
 
-        let baseQuery: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account
         ]
 
-        // 先清理旧记录，保证状态干净并应用最新无障碍策略
-        SecItemDelete(baseQuery as CFDictionary)
-
-        let attributes: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+        let attributesToUpdate: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
-        let status = SecItemAdd(attributes as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw KeychainError.unexpectedStatus(status)
+        let updateStatus = SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
+        if updateStatus == errSecSuccess {
+            return
+        } else if updateStatus == errSecItemNotFound {
+            var newItem = query
+            newItem[kSecValueData as String] = data
+            newItem[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+
+            let addStatus = SecItemAdd(newItem as CFDictionary, nil)
+            guard addStatus == errSecSuccess else {
+                throw KeychainError.unexpectedStatus(addStatus)
+            }
+        } else {
+            // 更新失败，禁止删除，直接抛出异常，原密钥完好保留在 Keychain 中
+            throw KeychainError.unexpectedStatus(updateStatus)
         }
     }
 

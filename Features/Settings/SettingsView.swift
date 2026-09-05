@@ -3,13 +3,11 @@ import SwiftUI
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     public let store: APIConfigurationStore
+    @State public var configurationSummary: String = ""
 
     public init(store: APIConfigurationStore = APIConfigurationStore()) {
         self.store = store
-    }
-
-    private var configurationSummary: String {
-        store.summaryText
+        _configurationSummary = State(initialValue: store.summaryText)
     }
 
     public var body: some View {
@@ -73,7 +71,15 @@ public struct SettingsView: View {
                     .fontWeight(.semibold)
                 }
             }
+            .onAppear {
+                refreshSummary()
+            }
         }
+    }
+
+    /// 刷新摘要文本（供返回或外部触发时即时更新）
+    public func refreshSummary() {
+        configurationSummary = store.summaryText
     }
 }
 

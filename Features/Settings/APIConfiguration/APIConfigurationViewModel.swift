@@ -17,7 +17,7 @@ public final class APIConfigurationViewModel {
 
     // MARK: - Dependencies
     public let store: APIConfigurationStore
-    nonisolated(unsafe) private var resignActiveObserver: NSObjectProtocol?
+    nonisolated private var resignActiveObserver: (any NSObjectProtocol)?
 
     // MARK: - Form State
     public var apiFormat: APIFormat {
@@ -27,9 +27,31 @@ public final class APIConfigurationViewModel {
         }
     }
 
-    public var baseURL: String
-    public var modelID: String
-    public var apiKeyInput: String
+    /// 明确跟踪 Base URL 是否已被用户手动编辑
+    /// 自动填写的地址可随格式切换；用户手动修改后不得被格式切换覆盖。
+    public var isBaseURLCustomized: Bool = false
+    private var isProgrammaticBaseURLChange: Bool = false
+
+    public var baseURL: String {
+        didSet {
+            baseURLValidationError = nil
+            if !isProgrammaticBaseURLChange {
+                isBaseURLCustomized = true
+            }
+        }
+    }
+
+    public var modelID: String {
+        didSet {
+            modelIDValidationError = nil
+        }
+    }
+
+    public var apiKeyInput: String {
+        didSet {
+            apiKeyValidationError = nil
+        }
+    }
 
     // MARK: - UI & Security State
     public var isAPIKeyVisible: Bool = false
@@ -51,10 +73,12 @@ public final class APIConfigurationViewModel {
             self.apiFormat = savedConfig.apiFormat
             self.baseURL = savedConfig.baseURL
             self.modelID = savedConfig.modelID
+            self.isBaseURLCustomized = (savedConfig.baseURL != savedConfig.apiFormat.defaultBaseURL)
         } else {
             self.apiFormat = .openAIResponses
             self.baseURL = APIFormat.openAIResponses.defaultBaseURL ?? ""
-            self.modelID = "gpt-4o"
+            self.modelID = ""
+            self.isBaseURLCustomized = false
         }
 
         self.hasSavedAPIKey = store.hasSavedAPIKey
@@ -79,27 +103,21 @@ public final class APIConfigurationViewModel {
 
     // MARK: - Format Change & Auto-fill
     private func handleFormatChange(from oldFormat: APIFormat, to newFormat: APIFormat) {
-        let trimmedCurrent = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // 若当前 Base URL 为空，或为前一格式的官方默认 Base URL，则自动联动填充新格式的默认值
-        let isPreviousDefault = (trimmedCurrent == oldFormat.defaultBaseURL)
-        if trimmedCurrent.isEmpty || isPreviousDefault {
+        if !isBaseURLCustomized {
+            isProgrammaticBaseURLChange = true
             baseURL = newFormat.defaultBaseURL ?? ""
+            isProgrammaticBaseURLChange = false
         }
-        // 若用户已输入自定义 Base URL 且不同于旧默认值，则予以保留，不强制覆盖
-
         baseURLValidationError = nil
     }
 
     // MARK: - Reset Actions
     public func resetBaseURLToDefault() {
+        isProgrammaticBaseURLChange = true
         baseURL = apiFormat.defaultBaseURL ?? ""
+        isProgrammaticBaseURLChange = false
+        isBaseURLCustomized = false
         baseURLValidationError = nil
-    }
-
-    public func resetModelIDToDefault() {
-        modelID = "gpt-4o"
-        modelIDValidationError = nil
     }
 
     // MARK: - Validation

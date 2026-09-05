@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct TranslationView: View {
+    @Environment(\.enablesFocus) private var enablesFocus
     @State public var viewModel: TranslationViewModel
     @FocusState private var isInputFocused: Bool
     @State private var showingSettings: Bool = false
@@ -12,6 +13,7 @@ public struct TranslationView: View {
     }
 
     private func dismissKeyboard() {
+        guard enablesFocus else { return }
         if isInputFocused {
             isInputFocused = false
         }
@@ -60,7 +62,7 @@ public struct TranslationView: View {
 
                         UnifiedTranslationPanel(
                             viewModel: viewModel,
-                            isInputFocused: $isInputFocused
+                            isInputFocused: enablesFocus ? $isInputFocused : nil
                         )
                     }
                 }

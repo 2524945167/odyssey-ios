@@ -49,10 +49,6 @@ public struct CompassLetterOShape: Shape {
             y: center.y + (outerRadius + tipLength) * CGFloat(sin(needleAngle))
         )
 
-        let base1 = CGPoint(
-            x: center.x + outerRadius * CGFloat(cos(angleEnd)),
-            y: center.y + outerRadius * CGFloat(sin(angleEnd))
-        )
         let base2 = CGPoint(
             x: center.x + outerRadius * CGFloat(cos(angleStart)),
             y: center.y + outerRadius * CGFloat(sin(angleStart))
@@ -96,6 +92,7 @@ public struct OdysseyBrandTitle: View {
     public init() {}
 
     public var body: some View {
+        let offset = baselineOffset
         HStack(alignment: .firstTextBaseline, spacing: letterSpacing) {
             CompassLetterOShape(
                 strokeWidth: strokeWidth,
@@ -104,7 +101,7 @@ public struct OdysseyBrandTitle: View {
             .fill(Color.blue, style: FillStyle(eoFill: true))
             .frame(width: oSize, height: oSize)
             .alignmentGuide(.firstTextBaseline) { d in
-                d.height - baselineOffset
+                d.height - offset
             }
 
             Text("dyssey")

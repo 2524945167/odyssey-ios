@@ -1,12 +1,20 @@
 import Foundation
 
 /// 内存 Mock Keychain 服务，专用于自动化测试
-/// 线程安全且绝不操作真实系统钥匙串
+/// 线程安全且绝不操作真实系统钥匙串，提供精确的调用计数统计与失败模拟
 public final class MockKeychainService: KeychainServiceProtocol, @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [String: String]
     public let service: String
     public let account: String
+
+    /// 记录各操作调用的实际次数，供单元测试做精准断言
+    public private(set) var updateCallCount: Int = 0
+    public private(set) var addCallCount: Int = 0
+    public private(set) var deleteCallCount: Int = 0
+
+    /// 模拟更新失败的错误注入点
+    public var simulateUpdateError: (any Error)? = nil
 
     public init(
         service: String = SystemKeychainService.defaultService,
@@ -25,7 +33,18 @@ public final class MockKeychainService: KeychainServiceProtocol, @unchecked Send
     public func saveAPIKey(_ apiKey: String) throws {
         lock.lock()
         defer { lock.unlock() }
-        storage[storageKey] = apiKey
+
+        if storage[storageKey] != nil {
+            updateCallCount += 1
+            if let error = simulateUpdateError {
+                // 模拟更新失败：不修改任何原有存储，直接抛出错误
+                throw error
+            }
+            storage[storageKey] = apiKey
+        } else {
+            addCallCount += 1
+            storage[storageKey] = apiKey
+        }
     }
 
     public func readAPIKey() throws -> String {
@@ -46,6 +65,7 @@ public final class MockKeychainService: KeychainServiceProtocol, @unchecked Send
     public func deleteAPIKey() throws {
         lock.lock()
         defer { lock.unlock() }
+        deleteCallCount += 1
         storage.removeValue(forKey: storageKey)
     }
 
@@ -53,6 +73,10 @@ public final class MockKeychainService: KeychainServiceProtocol, @unchecked Send
     public func reset() {
         lock.lock()
         defer { lock.unlock() }
+        updateCallCount = 0
+        addCallCount = 0
+        deleteCallCount = 0
+        simulateUpdateError = nil
         storage.removeAll()
     }
 }
