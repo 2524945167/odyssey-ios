@@ -172,11 +172,9 @@ final class OdysseySmokeTests: XCTestCase {
     func testSettingsViewImageRendererLight() throws {
         let targetWidth: CGFloat = 393
         let targetHeight: CGFloat = 852
-        let view = TestRenderContainer {
-            SettingsView()
-        }
-        .frame(width: targetWidth, height: targetHeight)
-        .preferredColorScheme(.light)
+        let view = SettingsView()
+            .frame(width: targetWidth, height: targetHeight)
+            .preferredColorScheme(.light)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2.0
@@ -194,11 +192,9 @@ final class OdysseySmokeTests: XCTestCase {
     func testSettingsViewImageRendererDark() throws {
         let targetWidth: CGFloat = 393
         let targetHeight: CGFloat = 852
-        let view = TestRenderContainer {
-            SettingsView()
-        }
-        .frame(width: targetWidth, height: targetHeight)
-        .preferredColorScheme(.dark)
+        let view = SettingsView()
+            .frame(width: targetWidth, height: targetHeight)
+            .preferredColorScheme(.dark)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2.0
@@ -214,11 +210,9 @@ final class OdysseySmokeTests: XCTestCase {
     // 14. OdysseyBrandTitle 在浅色模式下可通过 ImageRenderer 成功渲染
     @MainActor
     func testBrandTitleImageRendererLight() throws {
-        let view = TestRenderContainer {
-            OdysseyBrandTitle()
-        }
-        .padding()
-        .preferredColorScheme(.light)
+        let view = OdysseyBrandTitle()
+            .padding()
+            .preferredColorScheme(.light)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2.0
@@ -232,11 +226,9 @@ final class OdysseySmokeTests: XCTestCase {
     // 15. OdysseyBrandTitle 在深色模式下可通过 ImageRenderer 成功渲染
     @MainActor
     func testBrandTitleImageRendererDark() throws {
-        let view = TestRenderContainer {
-            OdysseyBrandTitle()
-        }
-        .padding()
-        .preferredColorScheme(.dark)
+        let view = OdysseyBrandTitle()
+            .padding()
+            .preferredColorScheme(.dark)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2.0
@@ -618,11 +610,9 @@ final class OdysseySmokeTests: XCTestCase {
         ])
         let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
 
-        let view = TestRenderContainer {
-            SettingsView(store: store)
-        }
-        .frame(width: targetWidth, height: targetHeight)
-        .preferredColorScheme(.light)
+        let view = SettingsView(store: store)
+            .frame(width: targetWidth, height: targetHeight)
+            .preferredColorScheme(.light)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2.0
@@ -751,20 +741,18 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertNil(viewModel.apiKeyValidationError, "编辑 API Key 后错误提示应立即清除")
     }
 
-    // 33. 设置首页摘要在保存返回后通过 refreshSummary 立即刷新
+    // 33. 设置首页摘要在保存返回后通过计算属性即时刷新
     @MainActor
     func testSettingsViewSummaryRefreshesOnSaveReturn() throws {
         let storage = MockConfigurationStorage()
         let keychain = MockKeychainService()
         let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
+        let settingsView = SettingsView(store: store)
 
-        let viewModel = SettingsViewModel(store: store)
-        XCTAssertEqual(viewModel.configurationSummary, "未配置", "初始未配置状态摘要应为'未配置'")
+        // 初始未配置状态
+        XCTAssertEqual(settingsView.configurationSummary, "未配置", "初始未配置状态摘要应为'未配置'")
 
-        let settingsView = SettingsView(viewModel: viewModel)
-        XCTAssertEqual(settingsView.viewModel.configurationSummary, "未配置")
-
-        // 模拟子页面保存了新配置与密钥
+        // 模拟在 APIConfigurationView 中保存了新配置与密钥并返回
         let config = APIConfiguration(
             apiFormat: .openAIResponses,
             baseURL: "https://api.openai.com/v1",
@@ -772,10 +760,8 @@ final class OdysseySmokeTests: XCTestCase {
         )
         try store.save(configuration: config, newAPIKey: "sk-saved-key-888")
 
-        // 验证调用刷新后状态立即同步
-        settingsView.refreshSummary()
-        XCTAssertEqual(viewModel.configurationSummary, "OpenAI Responses · gpt-4o", "保存返回并刷新后摘要必须立即更新")
-        XCTAssertEqual(settingsView.viewModel.configurationSummary, "OpenAI Responses · gpt-4o")
+        // 保存返回后，SettingsView 的摘要必须即时反映最新的格式与模型
+        XCTAssertEqual(settingsView.configurationSummary, "OpenAI Responses · gpt-4o", "保存返回后摘要通过计算属性即时刷新")
     }
 
     // 34. 隔离的 UserDefaults suite 测试：配置可保存加载、无敏感密钥残留、测试后清理隔离域
