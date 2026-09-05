@@ -240,20 +240,12 @@ public struct APIConfigurationView: View {
                 .fontWeight(.semibold)
             }
         }
-        .confirmationDialog(
-            "确定要清除已保存的 API Key 吗？",
+        .modifier(ClearConfirmationDialogModifier(
             isPresented: $viewModel.showClearConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("清除 API Key", role: .destructive) {
-                performConfirmClear()
-            }
-            Button("取消", role: .cancel) {
-                performCancelClear()
-            }
-        } message: {
-            Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
-        }
+            onConfirm: { performConfirmClear() },
+            onCancel: { performCancelClear() },
+            isEnabled: enablesFocus
+        ))
     }
 
     private func handleSave() {
@@ -284,5 +276,34 @@ public struct APIConfigurationView: View {
     /// 用户在确认对话框中点击“取消”或点击外部关闭回调（绝对不执行删除）
     public func performCancelClear() {
         viewModel.showClearConfirmation = false
+    }
+}
+
+private struct ClearConfirmationDialogModifier: ViewModifier {
+    @Binding var isPresented: Bool
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+    let isEnabled: Bool
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .confirmationDialog(
+                    "确定要清除已保存的 API Key 吗？",
+                    isPresented: $isPresented,
+                    titleVisibility: .visible
+                ) {
+                    Button("清除 API Key", role: .destructive) {
+                        onConfirm()
+                    }
+                    Button("取消", role: .cancel) {
+                        onCancel()
+                    }
+                } message: {
+                    Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
+                }
+        } else {
+            content
+        }
     }
 }

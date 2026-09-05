@@ -559,9 +559,7 @@ final class OdysseySmokeTests: XCTestCase {
         let viewModel = APIConfigurationViewModel(store: store)
 
         let view = TestRenderContainer {
-            NavigationStack {
-                APIConfigurationView(viewModel: viewModel)
-            }
+            APIConfigurationView(viewModel: viewModel)
         }
         .frame(width: targetWidth, height: targetHeight)
         .preferredColorScheme(.light)
@@ -588,9 +586,7 @@ final class OdysseySmokeTests: XCTestCase {
         let viewModel = APIConfigurationViewModel(store: store)
 
         let view = TestRenderContainer {
-            NavigationStack {
-                APIConfigurationView(viewModel: viewModel)
-            }
+            APIConfigurationView(viewModel: viewModel)
         }
         .frame(width: targetWidth, height: targetHeight)
         .preferredColorScheme(.dark)
@@ -762,8 +758,11 @@ final class OdysseySmokeTests: XCTestCase {
         let keychain = MockKeychainService()
         let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
 
-        let settingsView = SettingsView(store: store)
-        XCTAssertEqual(settingsView.configurationSummary, "未配置", "初始未配置状态摘要应为'未配置'")
+        let viewModel = SettingsViewModel(store: store)
+        XCTAssertEqual(viewModel.configurationSummary, "未配置", "初始未配置状态摘要应为'未配置'")
+
+        let settingsView = SettingsView(viewModel: viewModel)
+        XCTAssertEqual(settingsView.viewModel.configurationSummary, "未配置")
 
         // 模拟子页面保存了新配置与密钥
         let config = APIConfiguration(
@@ -775,7 +774,8 @@ final class OdysseySmokeTests: XCTestCase {
 
         // 验证调用刷新后状态立即同步
         settingsView.refreshSummary()
-        XCTAssertEqual(settingsView.configurationSummary, "OpenAI Responses · gpt-4o", "保存返回并刷新后摘要必须立即更新")
+        XCTAssertEqual(viewModel.configurationSummary, "OpenAI Responses · gpt-4o", "保存返回并刷新后摘要必须立即更新")
+        XCTAssertEqual(settingsView.viewModel.configurationSummary, "OpenAI Responses · gpt-4o")
     }
 
     // 34. 隔离的 UserDefaults suite 测试：配置可保存加载、无敏感密钥残留、测试后清理隔离域

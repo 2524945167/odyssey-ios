@@ -2,12 +2,15 @@ import SwiftUI
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    public let store: APIConfigurationStore
-    @State public var configurationSummary: String = ""
+    @Environment(\.enablesFocus) private var enablesFocus
+    public var viewModel: SettingsViewModel
 
     public init(store: APIConfigurationStore = APIConfigurationStore()) {
-        self.store = store
-        _configurationSummary = State(initialValue: store.summaryText)
+        self.viewModel = SettingsViewModel(store: store)
+    }
+
+    public init(viewModel: SettingsViewModel) {
+        self.viewModel = viewModel
     }
 
     public var body: some View {
@@ -15,12 +18,12 @@ public struct SettingsView: View {
             Form {
                 Section("API 配置") {
                     NavigationLink {
-                        APIConfigurationView(viewModel: APIConfigurationViewModel(store: store))
+                        APIConfigurationView(viewModel: APIConfigurationViewModel(store: viewModel.store))
                     } label: {
                         HStack {
                             Label("API 配置", systemImage: "slider.horizontal.3")
                             Spacer()
-                            Text(configurationSummary)
+                            Text(viewModel.configurationSummary)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -72,14 +75,15 @@ public struct SettingsView: View {
                 }
             }
             .onAppear {
-                refreshSummary()
+                guard enablesFocus else { return }
+                viewModel.refreshSummary()
             }
         }
     }
 
     /// 刷新摘要文本（供返回或外部触发时即时更新）
     public func refreshSummary() {
-        configurationSummary = store.summaryText
+        viewModel.refreshSummary()
     }
 }
 
