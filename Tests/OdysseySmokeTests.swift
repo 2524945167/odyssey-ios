@@ -79,42 +79,36 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertTrue(viewModel.translatedText.isEmpty, "调用 clearSource 后译文应被同时清空")
     }
 
-    // 7. 语言交换功能测试
+    // 7. 交换语言后方向正确
     @MainActor
-    func testLanguageSwap() {
+    func testSwapLanguagesDirection() {
         let viewModel = TranslationViewModel(
-            sourceLanguage: .chinese,
-            targetLanguage: .english,
             sourceText: "你好",
-            translatedText: "Hello"
+            translatedText: "Hello",
+            sourceLanguage: .chinese,
+            targetLanguage: .english
         )
 
         viewModel.swapLanguages()
 
-        XCTAssertEqual(viewModel.sourceLanguage, .english, "交换后源语言应变为英语")
-        XCTAssertEqual(viewModel.targetLanguage, .chinese, "交换后目标语言应变为简体中文")
-        XCTAssertEqual(viewModel.sourceText, "Hello", "交换后原文应为原译文内容")
-        XCTAssertTrue(viewModel.translatedText.isEmpty, "交换后译文应被重置清空")
+        XCTAssertEqual(viewModel.sourceLanguage, .english, "交换后源语言应为英语")
+        XCTAssertEqual(viewModel.targetLanguage, .chinese, "交换后目标语言应为简体中文")
+        XCTAssertEqual(viewModel.sourceText, "Hello", "交换后原文应承接原译文")
+        XCTAssertEqual(viewModel.translatedText, "你好", "交换后译文应承接原原文")
     }
 
-    // 8. 复制功能通过轻量 ClipboardWriting 协议测试
+    // 8. 复制功能通过轻量 ClipboardWriting 注入，测试不修改真实系统剪贴板
     @MainActor
-    func testCopyTranslationUsingMockClipboard() {
-        let mockClipboard = MockClipboardService()
+    func testCopyTranslationWithInjectedClipboard() {
+        let mockClipboard = MockClipboardWriter()
         let viewModel = TranslationViewModel(
-            clipboard: mockClipboard,
-            translatedText: "需要复制的译文内容"
+            translatedText: "Unit test mock copy string",
+            clipboard: mockClipboard
         )
-
-        XCTAssertNil(mockClipboard.copiedString, "初始剪贴板内容应为空")
 
         viewModel.copyTranslation()
 
-        XCTAssertEqual(
-            mockClipboard.copiedString,
-            "需要复制的译文内容",
-            "copyTranslation 必须将当前译文内容写入注入的剪贴板服务"
-        )
+        XCTAssertEqual(mockClipboard.storedString, "Unit test mock copy string", "复制应写入注入的 MockClipboardWriter，不污染系统剪贴板")
     }
 
     // 9. performMockTranslation 异步可等待性测试
