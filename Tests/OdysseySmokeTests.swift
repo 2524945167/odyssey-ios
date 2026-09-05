@@ -779,13 +779,14 @@ final class OdysseySmokeTests: XCTestCase {
     }
 
     // 34. 隔离的 UserDefaults suite 测试：配置可保存加载、无敏感密钥残留、测试后清理隔离域
+    @MainActor
     func testIsolatedUserDefaultsConfigurationStorage() throws {
         let suiteName = "com.kupetis.odyssey.tests.isolated_\(UUID().uuidString)"
-        let isolatedDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         addTeardownBlock {
-            isolatedDefaults.removePersistentDomain(forName: suiteName)
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         }
 
+        let isolatedDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let storage = UserDefaultsConfigurationStorage(userDefaults: isolatedDefaults)
         XCTAssertNil(storage.loadConfiguration(), "初始状态应无已保存配置")
 
@@ -811,5 +812,6 @@ final class OdysseySmokeTests: XCTestCase {
         // 清理并验证
         storage.clearConfiguration()
         XCTAssertNil(storage.loadConfiguration())
+        isolatedDefaults.removePersistentDomain(forName: suiteName)
     }
 }
