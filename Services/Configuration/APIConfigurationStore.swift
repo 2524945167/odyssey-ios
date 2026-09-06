@@ -4,7 +4,7 @@ import Combine
 /// API 配置统筹服务
 /// 负责协调非敏感配置存储与钥匙串敏感密钥存储，确保安全边界隔离
 @MainActor
-public final class APIConfigurationStore: ObservableObject {
+public final class APIConfigurationStore: @MainActor ObservableObject {
 
     public let objectWillChange = ObservableObjectPublisher()
 
