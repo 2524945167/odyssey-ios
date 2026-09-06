@@ -1,6 +1,18 @@
 # 第 3 轮补修验收记录
 
-状态：本地补修，待 CI 编译与测试、待真机最终验证。未进入第 4 轮。
+状态：补修代码已通过 CI 编译、36 项测试与 IPA 打包，待真机最终验证。未进入第 4 轮。
+
+## CI 与产物证据
+
+- 验证代码提交：`bd3dcc15e1506c84b7ded65dd12c6dca56fa1f12`。
+- [Actions 第 25 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34030365899)：success。
+- 36 项 XCTest：0 失败；密钥扫描通过；Release 构建成功。
+- 日志有 3 条 AppIntents 工具警告：`Metadata extraction skipped, no AppIntents.framework dependency found`。没有检测到 Swift 编译警告、FocusState 警告或 GitHub `##[warning]`，不宣称所有警告为零。
+- Artifact：`Odyssey-unsigned.ipa`，ID `9988425000`，外层 ZIP 244,467 字节。
+- GitHub 提供的外层 ZIP digest：`7b8cca1d2d3bf8998b4c5bdd7af4852b77dc7e11ce179eb981730fbacf877c4a`。
+- CI 计算的内部 IPA SHA-256：`63e36e57f5281a2ab13c06b92aacdf6afb63f1b29effe34261f8ae1a81c19b64`。
+- CI 验证 IPA 非空，包含 `Payload/Odyssey.app/Info.plist`，Bundle ID 为 `com.kupetis.odyssey`。
+- 前一次运行 #24 在 Swift 6 的 ObservableObject 协议隔离检查处失败；#25 显式标记主线程协议隔离后通过，未降低并发检查级别。
 
 ## 修改范围
 
@@ -17,7 +29,7 @@
 - 清除回调测试：检查取消零次删除、重新进入仍保存密钥、确认一次删除以及重复确认不重复删除；不等同于真实点击测试。
 - ImageRenderer：仅检查静态浅深色渲染，焦点绑定关闭；不证明键盘和原位确认区域交互正确。原位确认区域不受焦点开关控制。
 - Keychain 更新失败测试使用 Mock；不等同于真实系统钥匙串故障注入。
-- 当前 Windows 环境不能执行 Xcode/iOS 测试；未经本次 CI 验证，不声明测试通过、零警告或新 IPA 已生成。
+- 当前 Windows 环境不能执行 Xcode/iOS 测试；上述编译、测试与 IPA 结构证据来自本次 GitHub Actions，不是本地或真机验证。
 
 ## 待真机验收（iPhone 16 Pro）
 
@@ -30,4 +42,4 @@
 5. 原文输入框可正常聚焦，点上方空白可收起键盘；配置表单输入、保存、原位确认正常；检查浅深色及较大字号，说明和两个操作不能截断或重叠。
 6. 从旧版带自定义地址的兼容格式配置升级后，显示 Chat Completions API，地址、模型和保存密钥状态保留。
 
-CI 成功后补记 Commit、运行链接、测试统计、警告检查结果和内部 IPA SHA-256。真机通过前 README 不标记完成。
+真机通过前 README 不标记第 3 轮完成。不得以 CI 成功替代真机点击、键盘和视觉验收。
