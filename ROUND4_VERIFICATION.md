@@ -1,6 +1,19 @@
 # 第 4 轮：请求适配与连接测试
 
-状态：已提交 GitHub Actions。第 27 次运行在页面离线渲染测试中发生 SwiftUI 崩溃，已定位并修正测试宿主，待重跑；不得视为验收完成。
+状态：`main` 提交 `c214dd731729cc389dcfc62a2d10d92dfaf3cd6a` 已通过第 28 次运行的重试：67 项测试通过，Release 编译及未签名 IPA 打包、结构校验成功。用户已同意继续下一轮；未提供逐项真机或真实服务测试记录，不以 CI 成功代替这些验证。
+
+## 最终 CI 与产物证据（2026-09-06）
+
+- 用户明确授权后，仓库 `2524945167/odyssey-ios` 已改为公开，未修改付费预算。此前账户免费 Actions 分钟耗尽且额外预算为 0，导致首次尝试未启动；公开后重试成功。
+- [Actions 第 28 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34035461881)，成功作业 ID：`101496771717`。
+- 67 项 XCTest，0 失败：迁移 2 项、连接协议 19 项、连接 ViewModel 12 项、原有 smoke 34 项。日志包含 `TEST SUCCEEDED` 与 `BUILD SUCCEEDED`。
+- 密钥扫描通过。日志存在 3 条 `Metadata extraction skipped, no AppIntents.framework dependency found`，不能称为零警告。
+- [未签名 IPA Artifact](https://github.com/2524945167/odyssey-ios/actions/runs/34035461881/artifacts/9990532216)：`Odyssey-unsigned.ipa`，ID `9990532216`，外层 ZIP 349,983 字节。
+- GitHub 提供的外层 ZIP SHA-256：`6e7382294002c2568a88ad9db91d60c031503711c801b1c4379f6dd64d377006`。
+- CI 计算的内部 IPA SHA-256：`7a03d365495afcbecf0a24c5d3d7ad8b59ab08ddcace530754cab0e828c34f95`。本次定时检查读取日志与产物元数据，没有另行下载重算。
+- CI 确认 IPA 非空、包含 App 的 Info.plist，Bundle ID 为 `com.kupetis.odyssey`。
+- [测试结果 Artifact](https://github.com/2524945167/odyssey-ios/actions/runs/34035461881/artifacts/9990531935)：`Odyssey-test-results`，ID `9990531935`。
+- CI 定时检查已在报告成功结果后暂停；尚未为本轮执行签名，不自动进入后续轮次。
 
 ## 已确认范围
 
@@ -42,7 +55,7 @@ Base URL 保留自定义路径，仅移除末尾斜杠。例如 `https://example
 - 请求期间禁用重复开始和上限编辑；请求 ID + 任务取消双重保护，迟到结果不能覆盖新测试。
 - 只有 HTTP 2xx 且协议结构和文本结束状态正常才报告“连接成功”。额度耗尽、无文本、拒绝或未完整生成分别提示，不误报网络断开。
 
-## 自动化验收清单（待完整 CI 通过）
+## 自动化验收清单（已通过本次 CI）
 
 保留现有 36 项测试，新增 `ConnectionTestProtocolTests` 与 `ConnectionTestViewModelTests`：
 
@@ -57,11 +70,11 @@ Base URL 保留自定义路径，仅移除末尾斜杠。例如 `https://example
 
 所有请求测试使用内存 mock 或离线 URLProtocol。测试域名为 `.invalid`，URLProtocol 拦截全部请求；不会使用真实 Keychain、标准 UserDefaults 写入或实际模型服务。
 
-## 待完成验收
+## 验收边界与真机检查清单
 
-1. 提交后运行现有 Xcode 27 / iOS 27 / Swift 6 CI，记录实际运行链接、测试数量、错误与警告。
-2. 修复编译/测试问题后再记录 IPA Artifact、内部 IPA SHA-256 和确切提交。
-3. 不以“本地代码已编写”代替编译通过；第 3 轮已知 3 条 AppIntents 元数据跳过警告也必须如实核对，不宣称零警告。
+1. 已在现有 Xcode 27 / iOS 27 / Swift 6 CI 完成编译和 67 项测试，证据见上。
+2. 已记录 IPA Artifact、CI 计算的内部 IPA SHA-256 和确切提交；未将日志校验描述为本机下载后的独立复核。
+3. 已如实记录 3 条 AppIntents 元数据跳过警告，不宣称零警告。
 4. 用户在 iPhone 16 Pro 验证默认 256、自定义并重新进入页面、非法输入、开始/取消、后台取消、浅深模式和配置未受影响。
 5. 用户按自己的配置手动测试实际服务。若第三方不支持官方参数，收集脱敏的 HTTP 状态与服务商文档后，先确认兼容方案再改动。
 
@@ -70,6 +83,7 @@ Base URL 保留自定义路径，仅移除末尾斜杠。例如 `https://example
 - 第 27 次运行（提交 `4abedd9553fa506f199bd0e27fe9147dccd8661d`）：19 项协议测试通过；在 `testConnectionViewRendersLightAndDarkWithoutRequests` 中，ImageRenderer 渲染 NavigationStack/Form 触发 `SwiftUICore/Logging.swift:232: Fatal error: no current update to enqueue action to`。Xcode 重启宿主后继续执行其他测试，但未结束整体测试，约 10 分钟后人为取消获取日志；无 IPA。
 - 修复仅将新页面的渲染测试移入真实 UIWindow + UIHostingController，保留完整 Form、焦点和生命周期，不删除/跳过测试，不改动产品规则。
 - 构建显式输出 `build/TestResults.xcresult`，CI 无论成功与否尽量上传为 `Odyssey-test-results`，保留截图与诊断；整个作业设置 15 分钟超时防止无限占用 runner。
+- [第 28 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34035461881)的首次尝试（提交 `c214dd731729cc389dcfc62a2d10d92dfaf3cd6a`）：作业没有启动，检查注释为 `The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings`。这是历史受阻记录，不是新的编译/测试失败。仓库按用户要求公开后，同一次运行重试成功，结果见本文开头；未修改用户付款方式、账单或支出额度。
 
 ## 官方依据
 
