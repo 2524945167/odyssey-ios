@@ -10,6 +10,7 @@ on:
 jobs:
   build-and-test:
     runs-on: xcode-27
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -39,6 +40,14 @@ jobs:
         run: |
           chmod +x Scripts/build.sh
           bash Scripts/build.sh
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: Odyssey-test-results
+          path: build/TestResults.xcresult
+          if-no-files-found: ignore
 
       - name: Upload Unsigned IPA Artifact
         uses: actions/upload-artifact@v6

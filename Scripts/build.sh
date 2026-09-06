@@ -29,6 +29,7 @@ xcodebuild test \
     -scheme Odyssey \
     -destination "platform=iOS Simulator,name=iPhone 17,OS=27.0" \
     -derivedDataPath "$BUILD_DIR/DerivedData" \
+    -resultBundlePath "$BUILD_DIR/TestResults.xcresult" \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGN_IDENTITY=""

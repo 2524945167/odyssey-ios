@@ -1,6 +1,6 @@
 # 第 4 轮：请求适配与连接测试
 
-状态：本地实现与测试代码已编写，尚未提交至 GitHub Actions 编译运行；不得视为验收完成。
+状态：已提交 GitHub Actions。第 27 次运行在页面离线渲染测试中发生 SwiftUI 崩溃，已定位并修正测试宿主，待重跑；不得视为验收完成。
 
 ## 已确认范围
 
@@ -42,7 +42,7 @@ Base URL 保留自定义路径，仅移除末尾斜杠。例如 `https://example
 - 请求期间禁用重复开始和上限编辑；请求 ID + 任务取消双重保护，迟到结果不能覆盖新测试。
 - 只有 HTTP 2xx 且协议结构和文本结束状态正常才报告“连接成功”。额度耗尽、无文本、拒绝或未完整生成分别提示，不误报网络断开。
 
-## 自动化验收清单（测试已编写，尚未执行）
+## 自动化验收清单（待完整 CI 通过）
 
 保留现有 36 项测试，新增 `ConnectionTestProtocolTests` 与 `ConnectionTestViewModelTests`：
 
@@ -53,7 +53,7 @@ Base URL 保留自定义路径，仅移除末尾斜杠。例如 `https://example
 - URLSession 安全配置、重定向拒绝、离线 URLProtocol 的真实传输适配和响应大小保护。
 - 输出上限独立持久化、非法输入零请求、不修改原配置/密钥、仅用最新已保存配置。
 - 重复开始、提前取消、旧请求迟到、失败后恢复按钮、输出受限提示。
-- 浅色/深色 402 × 874 静态 ImageRenderer 渲染。仅证明静态视图能渲染，不代替真机点击、数字键盘、取消或布局验收。
+- 浅色/深色 402 × 874 有窗口 UIHostingController 渲染，断言实际输入控件显示 256，保留截图附件。不能代替真机点击、数字键盘、取消或布局验收。
 
 所有请求测试使用内存 mock 或离线 URLProtocol。测试域名为 `.invalid`，URLProtocol 拦截全部请求；不会使用真实 Keychain、标准 UserDefaults 写入或实际模型服务。
 
@@ -65,10 +65,18 @@ Base URL 保留自定义路径，仅移除末尾斜杠。例如 `https://example
 4. 用户在 iPhone 16 Pro 验证默认 256、自定义并重新进入页面、非法输入、开始/取消、后台取消、浅深模式和配置未受影响。
 5. 用户按自己的配置手动测试实际服务。若第三方不支持官方参数，收集脱敏的 HTTP 状态与服务商文档后，先确认兼容方案再改动。
 
+## CI 修复记录
+
+- 第 27 次运行（提交 `4abedd9553fa506f199bd0e27fe9147dccd8661d`）：19 项协议测试通过；在 `testConnectionViewRendersLightAndDarkWithoutRequests` 中，ImageRenderer 渲染 NavigationStack/Form 触发 `SwiftUICore/Logging.swift:232: Fatal error: no current update to enqueue action to`。Xcode 重启宿主后继续执行其他测试，但未结束整体测试，约 10 分钟后人为取消获取日志；无 IPA。
+- 修复仅将新页面的渲染测试移入真实 UIWindow + UIHostingController，保留完整 Form、焦点和生命周期，不删除/跳过测试，不改动产品规则。
+- 构建显式输出 `build/TestResults.xcresult`，CI 无论成功与否尽量上传为 `Odyssey-test-results`，保留截图与诊断；整个作业设置 15 分钟超时防止无限占用 runner。
+
 ## 官方依据
 
 - [OpenAI Responses 请求与输出预算](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
 - [OpenAI Chat Completions 参数与响应](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
 - [Anthropic Messages 请求与响应](https://platform.claude.com/docs/en/api/messages/create)
 - [Apple URLSession 字节接收](https://developer.apple.com/documentation/foundation/urlsession/bytes(for:delegate:))
+- [Apple ImageRenderer 的 UIKit 容器限制](https://developer.apple.com/documentation/swiftui/imagerenderer)
+- [Apple UIHostingController](https://developer.apple.com/documentation/swiftui/uihostingcontroller)
 - [Apple URLSession 重定向代理](https://developer.apple.com/documentation/foundation/urlsessiontaskdelegate/urlsession(_:task:willPerformHTTPRedirection:newRequest:completionHandler:))

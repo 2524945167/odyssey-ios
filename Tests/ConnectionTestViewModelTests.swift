@@ -1,5 +1,6 @@
 import XCTest
 import SwiftUI
+import UIKit
 @testable import Odyssey
 
 final class ConnectionTestViewModelTests: XCTestCase {
@@ -193,19 +194,55 @@ final class ConnectionTestViewModelTests: XCTestCase {
         let service = ControlledProbeTester()
         let fixture = try ProbeViewModelFixture(service: service)
         defer { fixture.cleanUp() }
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         for scheme in [ColorScheme.light, .dark] {
-            let renderer = ImageRenderer(content:
+            // Form/NavigationStack 含 UIKit 容器，不能用 ImageRenderer 的扁平离线渲染验证。
+            let host = UIHostingController(rootView:
                 NavigationStack { ConnectionTestView(viewModel: fixture.model) }
-                    .environment(\.enablesFocus, false)
                     .environment(\.colorScheme, scheme)
-                    .frame(width: 402, height: 874)
             )
-            let image = try XCTUnwrap(renderer.uiImage)
+            let previousKeyWindow = scene.windows.first(where: \.isKeyWindow)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+            window.rootViewController = host
+            window.overrideUserInterfaceStyle = scheme == .light ? .light : .dark
+            window.makeKeyAndVisible()
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+                previousKeyWindow?.makeKey()
+            }
+            // 给真实视图层次机会完成挂载；不禁用 FocusState 或 onAppear，也不发起测试请求。
+            for _ in 0..<200 {
+                host.view.layoutIfNeeded()
+                if findTextField(in: host.view) != nil { break }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            let field = try XCTUnwrap(findTextField(in: host.view))
+            XCTAssertEqual(field.text, "256")
+            XCTAssertFalse(field.isFirstResponder)
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: 402, height: 874))
+            let image = renderer.image { _ in
+                XCTAssertTrue(host.view.drawHierarchy(in: CGRect(x: 0, y: 0, width: 402, height: 874), afterScreenUpdates: true))
+            }
             XCTAssertEqual(image.size.width, 402)
             XCTAssertEqual(image.size.height, 874)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = scheme == .light ? "ConnectionTest-Light" : "ConnectionTest-Dark"
+            attachment.lifetime = .keepAlways
+            add(attachment)
         }
         let count = await service.calls.count
         XCTAssertEqual(count, 0)
+    }
+
+    @MainActor
+    private func findTextField(in view: UIView) -> UITextField? {
+        if let field = view as? UITextField { return field }
+        for subview in view.subviews {
+            if let field = findTextField(in: subview) { return field }
+        }
+        return nil
     }
 
     @MainActor
