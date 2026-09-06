@@ -1,9 +1,10 @@
 import XCTest
 import SwiftUI
+import Combine
 @testable import Odyssey
 
 /// 自动化测试离线渲染容器：为 ImageRenderer 隔离无活动 UIWindow 环境下的 FocusState 焦点子系统，
-/// 消除离线渲染时的系统虚假警告 "Accessing FocusState's value outside of the body of a View"。
+/// 仅检查静态渲染；不验证真实键盘、焦点或原位确认区域点击。
 private struct TestRenderContainer<Content: View>: View {
     let content: Content
 
@@ -243,24 +244,21 @@ final class OdysseySmokeTests: XCTestCase {
     // MARK: - 第 3 轮 API 配置与安全存储测试
     // ==========================================
 
-    // 16. APIFormat 枚举属性、4 个选项、默认 /v1 与稳定持久化编码
+    // 16. 三种格式、显示名称、默认 /v1 与稳定持久化编码
     func testAPIFormatAttributesAndCodable() throws {
-        XCTAssertEqual(APIFormat.allCases.count, 4, "APIFormat 应包含 4 种类型")
+        XCTAssertEqual(APIFormat.allCases.count, 3)
 
         XCTAssertEqual(APIFormat.openAIResponses.rawValue, "openai_responses")
         XCTAssertEqual(APIFormat.openAIChatCompletions.rawValue, "openai_chat_completions")
         XCTAssertEqual(APIFormat.anthropicMessages.rawValue, "anthropic_messages")
-        XCTAssertEqual(APIFormat.openAICompatible.rawValue, "openai_compatible")
 
-        XCTAssertEqual(APIFormat.openAIResponses.displayName, "OpenAI Responses")
-        XCTAssertEqual(APIFormat.openAIChatCompletions.displayName, "OpenAI Chat Completions")
-        XCTAssertEqual(APIFormat.anthropicMessages.displayName, "Anthropic Messages")
-        XCTAssertEqual(APIFormat.openAICompatible.displayName, "OpenAI Compatible")
+        XCTAssertEqual(APIFormat.openAIResponses.displayName, "Responses API")
+        XCTAssertEqual(APIFormat.openAIChatCompletions.displayName, "Chat Completions API")
+        XCTAssertEqual(APIFormat.anthropicMessages.displayName, "Anthropic API（Messages）")
 
         XCTAssertEqual(APIFormat.openAIResponses.defaultBaseURL, "https://api.openai.com/v1")
         XCTAssertEqual(APIFormat.openAIChatCompletions.defaultBaseURL, "https://api.openai.com/v1")
         XCTAssertEqual(APIFormat.anthropicMessages.defaultBaseURL, "https://api.anthropic.com/v1")
-        XCTAssertNil(APIFormat.openAICompatible.defaultBaseURL)
 
         // Codable 往返测试
         for format in APIFormat.allCases {
@@ -383,7 +381,7 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertNil(storage.loadConfiguration())
 
         let config = APIConfiguration(
-            apiFormat: .openAICompatible,
+            apiFormat: .openAIChatCompletions,
             baseURL: "https://my-llm.com/v1",
             modelID: "deepseek-chat"
         )
@@ -397,6 +395,7 @@ final class OdysseySmokeTests: XCTestCase {
     }
 
     // 23. APIConfigurationStore 协调与状态摘要
+    @MainActor
     func testAPIConfigurationStoreLifecycle() throws {
         let storage = MockConfigurationStorage()
         let keychain = MockKeychainService()
@@ -417,7 +416,7 @@ final class OdysseySmokeTests: XCTestCase {
 
         XCTAssertTrue(store.isConfigured)
         XCTAssertTrue(store.hasSavedAPIKey)
-        XCTAssertEqual(store.summaryText, "OpenAI Responses · gpt-4o")
+        XCTAssertEqual(store.summaryText, "Responses API · gpt-4o")
 
         // 清除 API Key
         try store.clearAPIKey()
@@ -451,11 +450,6 @@ final class OdysseySmokeTests: XCTestCase {
         // 切换到 Anthropic：自动填充 Anthropic 默认 Base URL
         viewModel.apiFormat = .anthropicMessages
         XCTAssertEqual(viewModel.baseURL, "https://api.anthropic.com/v1")
-        XCTAssertFalse(viewModel.isBaseURLCustomized)
-
-        // 切换到 OpenAI Compatible：无默认地址，自动填充为空
-        viewModel.apiFormat = .openAICompatible
-        XCTAssertEqual(viewModel.baseURL, "")
         XCTAssertFalse(viewModel.isBaseURLCustomized)
 
         // 切换到 Chat Completions：自动填充 OpenAI 默认 Base URL
@@ -625,9 +619,9 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0)
     }
 
-    // 30. 清除 API Key 按钮交互验证：取消调用 0 次，确认调用 1 次
+    // 30. 原位确认的回调测试（非真实点击）：取消零次删除，确认一次删除。
     @MainActor
-    func testClearAPIKeyCancelDoesNotDeleteAndConfirmDeletesOnce() throws {
+    func testClearAPIKeyCallbacksCancelDoesNotDeleteAndConfirmDeletesOnce() throws {
         let initialConfig = APIConfiguration(
             apiFormat: .openAIChatCompletions,
             baseURL: "https://api.openai.com/v1",
@@ -646,13 +640,17 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertTrue(keychain.hasAPIKey(), "初始 Keychain 中必须存在密钥")
         XCTAssertTrue(viewModel.hasSavedAPIKey)
 
-        // 步骤 1：用户点击页面上的“清除已保存的 API Key”按钮
-        view.handleClearButtonTapped()
-        XCTAssertTrue(viewModel.showClearConfirmation, "点击清除按钮后应将确认状态设为 true 呼出系统对话框")
-        XCTAssertEqual(keychain.deleteCallCount, 0, "呼出确认对话框时绝不得调用删除服务")
-        XCTAssertTrue(keychain.hasAPIKey(), "呼出确认对话框时密钥必须保持存在")
+        // 未展开时直接调用确认，也不允许删除。
+        view.performConfirmClear()
+        XCTAssertEqual(keychain.deleteCallCount, 0)
 
-        // 步骤 2：用户在系统对话框中点击“取消”（或点击遮罩外部关闭）
+        // 步骤 1：调用展开回调。
+        view.handleClearButtonTapped()
+        XCTAssertTrue(viewModel.showClearConfirmation, "清除按钮下方应展开确认区域")
+        XCTAssertEqual(keychain.deleteCallCount, 0, "展开时绝不得调用删除服务")
+        XCTAssertTrue(keychain.hasAPIKey(), "展开时密钥必须保持存在")
+
+        // 步骤 2：调用取消回调。
         view.performCancelClear()
         XCTAssertFalse(viewModel.showClearConfirmation, "点击取消后确认状态应复位为 false")
         XCTAssertEqual(keychain.deleteCallCount, 0, "取消后删除服务调用次数必须保持为 0")
@@ -660,22 +658,28 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertEqual(try keychain.readAPIKey(), initialKey, "读取的密钥文本必须与初始密钥完全一致")
         XCTAssertTrue(viewModel.hasSavedAPIKey, "ViewModel 保存标记依然为 true")
         XCTAssertEqual(store.loadConfiguration(), initialConfig, "非敏感配置必须完整保留未被修改")
+        let reopenedViewModel = APIConfigurationViewModel(store: store)
+        XCTAssertTrue(reopenedViewModel.hasSavedAPIKey)
+        XCTAssertFalse(reopenedViewModel.showClearConfirmation)
 
         // 步骤 3：用户再次点击“清除已保存的 API Key”
         view.handleClearButtonTapped()
         XCTAssertTrue(viewModel.showClearConfirmation)
         XCTAssertEqual(keychain.deleteCallCount, 0)
 
-        // 步骤 4：用户在系统对话框中明确点击“清除 API Key”确认
+        // 步骤 4：调用“确认清除”回调。
         view.performConfirmClear()
-        XCTAssertFalse(viewModel.showClearConfirmation, "确认清除后对话框状态复位为 false")
+        XCTAssertFalse(viewModel.showClearConfirmation, "确认清除后收起确认区域")
         XCTAssertEqual(keychain.deleteCallCount, 1, "确认清除后删除服务必须且仅能调用 1 次")
         XCTAssertFalse(keychain.hasAPIKey(), "确认清除后 Keychain 中的密钥应被彻底删除")
         XCTAssertFalse(viewModel.hasSavedAPIKey, "ViewModel 的 hasSavedAPIKey 应更新为 false")
         XCTAssertEqual(store.loadConfiguration(), initialConfig, "清除密钥操作绝不得篡改或重置非敏感配置")
+        view.performConfirmClear()
+        XCTAssertEqual(keychain.deleteCallCount, 1, "重复确认不得重复删除")
     }
 
     // 31. Keychain 替换逻辑：更新失败时必须保留原密钥
+    @MainActor
     func testKeychainUpdateFailurePreservesOriginalKey() throws {
         let originalKey = "sk-original-active-key-1122"
         let newKey = "sk-failed-replacement-key-3344"
@@ -741,13 +745,16 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertNil(viewModel.apiKeyValidationError, "编辑 API Key 后错误提示应立即清除")
     }
 
-    // 33. 设置首页摘要在保存返回后通过计算属性即时刷新
+    // 33. 验证界面订阅的更新通知；不冒充真实导航返回的 UI 测试。
     @MainActor
-    func testSettingsViewSummaryRefreshesOnSaveReturn() throws {
+    func testSettingsSummaryPublishesOnSaveAndClear() throws {
         let storage = MockConfigurationStorage()
         let keychain = MockKeychainService()
         let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
         let settingsView = SettingsView(store: store)
+        var notifications = 0
+        let subscription = store.objectWillChange.sink { notifications += 1 }
+        defer { subscription.cancel() }
 
         // 初始未配置状态
         XCTAssertEqual(settingsView.configurationSummary, "未配置", "初始未配置状态摘要应为'未配置'")
@@ -761,7 +768,11 @@ final class OdysseySmokeTests: XCTestCase {
         try store.save(configuration: config, newAPIKey: "sk-saved-key-888")
 
         // 保存返回后，SettingsView 的摘要必须即时反映最新的格式与模型
-        XCTAssertEqual(settingsView.configurationSummary, "OpenAI Responses · gpt-4o", "保存返回后摘要通过计算属性即时刷新")
+        XCTAssertEqual(notifications, 1)
+        XCTAssertEqual(settingsView.configurationSummary, "Responses API · gpt-4o")
+        try store.clearAPIKey()
+        XCTAssertEqual(notifications, 2)
+        XCTAssertEqual(settingsView.configurationSummary, "未配置")
     }
 
     // 34. 隔离的 UserDefaults suite 测试：配置可保存加载、无敏感密钥残留、测试后清理隔离域
@@ -781,7 +792,10 @@ final class OdysseySmokeTests: XCTestCase {
             baseURL: "https://api.openai.com/v1",
             modelID: "gpt-4o"
         )
-        try storage.saveConfiguration(testConfig)
+        let fakeKey = "odyssey-fixture-not-a-real-credential"
+        let keychain = MockKeychainService()
+        let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
+        try store.save(configuration: testConfig, newAPIKey: fakeKey)
 
         let reloadedConfig = try XCTUnwrap(storage.loadConfiguration())
         XCTAssertEqual(reloadedConfig.apiFormat, .openAIResponses)
@@ -789,11 +803,13 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertEqual(reloadedConfig.modelID, "gpt-4o")
 
         // 验证持久化底层存储中绝对不含 API Key 或任何密钥字段
-        let allValues = isolatedDefaults.dictionaryRepresentation()
-        let serializedDict = String(describing: allValues)
-        XCTAssertFalse(serializedDict.contains("apiKey"), "UserDefaults 中严禁包含 apiKey")
-        XCTAssertFalse(serializedDict.contains("api_key"), "UserDefaults 中严禁包含 api_key")
-        XCTAssertFalse(serializedDict.contains("sk-"), "UserDefaults 中严禁包含任何密钥明文")
+        let data = try XCTUnwrap(isolatedDefaults.data(forKey: UserDefaultsConfigurationStorage.defaultStorageKey))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(Set(json.keys), Set(["apiFormat", "baseURL", "modelID"]))
+        XCTAssertNil(data.range(of: Data(fakeKey.utf8)))
+        let domain = try XCTUnwrap(isolatedDefaults.persistentDomain(forName: suiteName))
+        XCTAssertEqual(Set(domain.keys), Set([UserDefaultsConfigurationStorage.defaultStorageKey]))
+        XCTAssertEqual(try keychain.readAPIKey(), fakeKey)
 
         // 清理并验证
         storage.clearConfiguration()

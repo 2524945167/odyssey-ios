@@ -7,13 +7,11 @@ public enum APIFormat: String, CaseIterable, Identifiable, Sendable {
     case openAIResponses = "openai_responses"
     case openAIChatCompletions = "openai_chat_completions"
     case anthropicMessages = "anthropic_messages"
-    case openAICompatible = "openai_compatible"
 
     // 常用格式别名
     public static let responses = APIFormat.openAIResponses
     public static let chatCompletions = APIFormat.openAIChatCompletions
     public static let anthropic = APIFormat.anthropicMessages
-    public static let compatible = APIFormat.openAICompatible
 
     public var id: String { rawValue }
 
@@ -21,13 +19,11 @@ public enum APIFormat: String, CaseIterable, Identifiable, Sendable {
     public var displayName: String {
         switch self {
         case .openAIResponses:
-            return "OpenAI Responses"
+            return "Responses API"
         case .openAIChatCompletions:
-            return "OpenAI Chat Completions"
+            return "Chat Completions API"
         case .anthropicMessages:
-            return "Anthropic Messages"
-        case .openAICompatible:
-            return "OpenAI Compatible"
+            return "Anthropic API（Messages）"
         }
     }
 
@@ -40,8 +36,6 @@ public enum APIFormat: String, CaseIterable, Identifiable, Sendable {
             return "适用于支持标准 Chat Completions (/v1/chat/completions) 协议的官方或代理端点。"
         case .anthropicMessages:
             return "适用于支持 Anthropic Messages (/v1/messages) 协议的官方或代理端点。"
-        case .openAICompatible:
-            return "适用于各类第三方兼容 OpenAI 接口规范的模型服务，需手动填写完整 Base URL。"
         }
     }
 
@@ -55,8 +49,6 @@ public enum APIFormat: String, CaseIterable, Identifiable, Sendable {
             return "https://api.openai.com/v1"
         case .anthropicMessages:
             return "https://api.anthropic.com/v1"
-        case .openAICompatible:
-            return nil
         }
     }
 }
@@ -74,9 +66,12 @@ extension APIFormat: Codable {
         case "anthropic_messages":
             self = .anthropicMessages
         case "openai_compatible":
-            self = .openAICompatible
+            // 旧版兼容格式按已确认的规则迁移；其他配置字段与钥匙串不变。
+            self = .openAIChatCompletions
         default:
-            self = .openAIResponses
+            throw DecodingError.dataCorruptedError(
+                in: container, debugDescription: "Unsupported API format"
+            )
         }
     }
 

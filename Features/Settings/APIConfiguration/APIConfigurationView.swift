@@ -214,7 +214,7 @@ public struct APIConfigurationView: View {
                 }
             }
 
-            // MARK: - 破坏性清除操作（系统二次确认保护）
+            // MARK: - 破坏性清除操作（按钮下方原位二次确认）
             if viewModel.hasSavedAPIKey {
                 Section {
                     Button(role: .destructive) {
@@ -227,6 +227,33 @@ public struct APIConfigurationView: View {
                         }
                     }
                     .buttonStyle(.borderless)
+
+                    if viewModel.showClearConfirmation {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("确定清除已保存的 API Key？")
+                                .font(.subheadline.weight(.semibold))
+                            Text("仅删除密钥，保留 API 格式、Base URL 和 Model ID。")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+
+                            HStack(spacing: 16) {
+                                Button("取消", role: .cancel) {
+                                    performCancelClear()
+                                }
+                                .buttonStyle(.borderless)
+                                .frame(minHeight: 44)
+
+                                Spacer()
+
+                                Button("确认清除", role: .destructive) {
+                                    performConfirmClear()
+                                }
+                                .buttonStyle(.borderless)
+                                .frame(minHeight: 44)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
             }
         }
@@ -240,12 +267,6 @@ public struct APIConfigurationView: View {
                 .fontWeight(.semibold)
             }
         }
-        .modifier(ClearConfirmationDialogModifier(
-            isPresented: $viewModel.showClearConfirmation,
-            onConfirm: { performConfirmClear() },
-            onCancel: { performCancelClear() },
-            isEnabled: enablesFocus
-        ))
     }
 
     private func handleSave() {
@@ -262,48 +283,20 @@ public struct APIConfigurationView: View {
 
     // MARK: - 破坏性清除按钮交互方法（供 UI 回调与自动化测试精确验证）
 
-    /// 点击“清除已保存的 API Key”按钮，调出系统确认对话框（不执行删除）
+    /// 点击清除按钮仅展开其下方确认区域，不执行删除。
     public func handleClearButtonTapped() {
         viewModel.showClearConfirmation = true
     }
 
-    /// 用户在确认对话框中点击“清除 API Key”回调（唯一执行删除的入口）
+    /// 用户在原位确认区域点击“确认清除”，才允许删除；避免重复执行。
     public func performConfirmClear() {
-        viewModel.clearAPIKey()
+        guard viewModel.showClearConfirmation, viewModel.hasSavedAPIKey else { return }
         viewModel.showClearConfirmation = false
+        viewModel.clearAPIKey()
     }
 
-    /// 用户在确认对话框中点击“取消”或点击外部关闭回调（绝对不执行删除）
+    /// 点击“取消”仅收起区域，绝不执行删除。
     public func performCancelClear() {
         viewModel.showClearConfirmation = false
-    }
-}
-
-private struct ClearConfirmationDialogModifier: ViewModifier {
-    @Binding var isPresented: Bool
-    let onConfirm: () -> Void
-    let onCancel: () -> Void
-    let isEnabled: Bool
-
-    func body(content: Content) -> some View {
-        if isEnabled {
-            content
-                .confirmationDialog(
-                    "确定要清除已保存的 API Key 吗？",
-                    isPresented: $isPresented,
-                    titleVisibility: .visible
-                ) {
-                    Button("清除 API Key", role: .destructive) {
-                        onConfirm()
-                    }
-                    Button("取消", role: .cancel) {
-                        onCancel()
-                    }
-                } message: {
-                    Text("清除后将无法发起该服务的翻译请求，需重新录入有效密钥。")
-                }
-        } else {
-            content
-        }
     }
 }

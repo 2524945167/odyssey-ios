@@ -6,6 +6,8 @@ Odyssey 是一款轻量、现代的 iOS 客户端应用。
 
 **第 3 轮执行中（待真机验收）**（API 配置模型、设置表单与本地安全保存，CI 自动化验证已就绪，待真机最终验收）。
 
+当前补修内容与验证边界见 [第 3 轮验收记录](ROUND3_VERIFICATION.md)。本次修改尚待 CI 验证，不代表已有新 IPA 可下载。
+
 ## 如何触发 GitHub Actions
 
 GitHub Actions CI 流水线配置为自动执行，支持以下触发方式：

@@ -2,7 +2,7 @@ import SwiftUI
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    public let store: APIConfigurationStore
+    @ObservedObject public var store: APIConfigurationStore
 
     public init(store: APIConfigurationStore = APIConfigurationStore()) {
         self.store = store

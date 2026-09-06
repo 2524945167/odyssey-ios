@@ -1,8 +1,12 @@
 import Foundation
+import Combine
 
 /// API 配置统筹服务
 /// 负责协调非敏感配置存储与钥匙串敏感密钥存储，确保安全边界隔离
-public final class APIConfigurationStore: Sendable {
+@MainActor
+public final class APIConfigurationStore: ObservableObject {
+
+    public let objectWillChange = ObservableObjectPublisher()
 
     public let configurationStorage: ConfigurationStorageProtocol
     public let keychainService: KeychainServiceProtocol
@@ -47,6 +51,8 @@ public final class APIConfigurationStore: Sendable {
     ///   - configuration: 非敏感配置对象
     ///   - newAPIKey: 可选的新 API Key（若为空或 nil 则保留现有 Keychain 密钥）
     public func save(configuration: APIConfiguration, newAPIKey: String?) throws {
+        // 包括部分写入后抛错的情况，均让界面重新读取实际存储状态。
+        defer { objectWillChange.send() }
         // 先存储敏感 API Key 到 Keychain
         if let key = newAPIKey?.trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty {
             try keychainService.saveAPIKey(key)
@@ -57,11 +63,13 @@ public final class APIConfigurationStore: Sendable {
 
     /// 清除安全保存的 API Key
     public func clearAPIKey() throws {
+        defer { objectWillChange.send() }
         try keychainService.deleteAPIKey()
     }
 
     /// 清除全部配置与 API Key
     public func clearAll() throws {
+        defer { objectWillChange.send() }
         configurationStorage.clearConfiguration()
         try keychainService.deleteAPIKey()
     }
