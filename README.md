@@ -4,9 +4,9 @@ Odyssey 是一款轻量、现代的 iOS 客户端应用。
 
 ## 当前状态
 
-**第 3 轮执行中（待真机验收）**（API 配置模型、设置表单与本地安全保存，CI 自动化验证已就绪，待真机最终验收）。
+**第 3 轮已获用户真机确认，第 4 轮本地开发中（待 CI 与真机验收）**。
 
-当前补修已通过 [GitHub Actions 第 25 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34030365899)：36 项测试通过，未签名 IPA 已生成。仍待真机最终验证；日志存在 3 条 AppIntents 元数据提取跳过警告。完整结果与验证边界见 [第 3 轮验收记录](ROUND3_VERIFICATION.md)。
+第 3 轮补修通过 [GitHub Actions 第 25 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34030365899)：36 项测试通过，未签名 IPA 已生成；日志存在 3 条 AppIntents 元数据提取跳过警告。历史结果见 [第 3 轮验收记录](ROUND3_VERIFICATION.md)。第 4 轮连接测试代码及默认 256、可自定义的测试输出上限已编写，尚未编译验收；范围、费用说明与测试清单见 [第 4 轮验收记录](ROUND4_VERIFICATION.md)。
 
 ## 如何触发 GitHub Actions
 

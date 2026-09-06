@@ -29,7 +29,7 @@ public struct SettingsView: View {
                     }
 
                     NavigationLink {
-                        PlaceholderDetailView(title: "测试连接", icon: "antenna.radiowaves.left.and.right")
+                        ConnectionTestView(store: store)
                     } label: {
                         Label("测试连接", systemImage: "antenna.radiowaves.left.and.right")
                     }
