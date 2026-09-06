@@ -4,11 +4,11 @@ Odyssey 是一款轻量、现代的 iOS 客户端应用。
 
 ## 当前状态
 
-**第 4 轮已通过 CI；第 5 轮流式接收基础已获用户确认，正在开发与验收**。
+**第 5 轮流式接收基础已实现并通过 CI；尚未接入首页真实翻译**。
 
 第 4 轮通过 [GitHub Actions 第 28 次运行的重试](https://github.com/2524945167/odyssey-ios/actions/runs/34035461881)：67 项测试通过，Release 编译与未签名 IPA 打包、结构校验成功；日志存在 3 条 AppIntents 元数据提取跳过警告，不宣称零警告。连接测试默认输出上限为 256 tokens，可由用户自定义；首页仍是本地模拟翻译。范围、费用说明与产物证据见 [第 4 轮验收记录](ROUND4_VERIFICATION.md)，历史结果见 [第 3 轮验收记录](ROUND3_VERIFICATION.md)。用户已表示“没问题，继续下一轮”，但未提供逐项真机或真实服务测试记录，不将 CI 结果描述为已完成这些测试。
 
-第 5 轮只新增 SSE 传输与三协议适配，尚未接入首页；范围、安全边界及测试清单见 [第 5 轮验收记录](ROUND5_VERIFICATION.md)。
+第 5 轮通过 [GitHub Actions 第 29 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34040390958)：保留原有 67 项、新增 35 项，共 102 项测试全部通过；Release 编译、未签名 IPA 打包及结构校验通过。日志仍有 3 条 AppIntents 元数据提取跳过警告。本轮只新增 SSE 传输与三协议适配，没有真实模型请求、UI 变化或新的翻译默认预算；范围、安全边界及确切提交和产物证据见 [第 5 轮验收记录](ROUND5_VERIFICATION.md)。
 
 ## 如何触发 GitHub Actions
 
