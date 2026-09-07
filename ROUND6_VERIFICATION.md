@@ -23,16 +23,37 @@
 - 用户已明确授权把首页输入控件局部封装为原生 UITextView，保持现有外观和交互、不设置全局键盘样式，并要求本轮以零警告为目标。
 - 必须检查主题连续切换、焦点、光标、中文组合输入和文本保留；不得用强制失焦再聚焦或按主题重建控件掩盖问题。
 
+## 键盘实现与测试范围
+
+- 首页使用局部 `TranslationTextEditor` / `ThemeAwareTextView`，源文本仍由原 ViewModel 管理，焦点通过本地 Binding 与原生 first responder 同步。API 设置表单不受影响。
+- 从窗口的实际 UIKit traits 读取深浅色；主题改变时更新本输入控件的 `keyboardAppearance`，只对当前 first responder 刷新输入视图。前台恢复时额外刷新，覆盖扩展曾被挂起的情况；不根据旧颜色取反。
+- 主题刷新不重建输入控件、不修改原文/选区、不强制失焦再聚焦；模型回写在存在 marked text 时不覆盖组合输入。保留清除、译文复制、空白收起及内外滚动交互。
+- 新增 7 项真实 UIWindow 挂载测试：初始主题、连续切换并保持选区、marked text 保留、前台恢复、收起再打开、SwiftUI 文本与焦点双向绑定、首页控件身份及浅深色层级截图。
+- 保留原有 7 个页面浅深色/已配置状态验收场景，改名为 MountedRendering 并使用 UIHostingController / UIGraphicsImageRenderer：先断言原生输入框或列表实际挂载，再验证截图与尺寸。删除无效的离线原生页面渲染方式，不删减测试场景；纯 SwiftUI 品牌组件仍保留 ImageRenderer。
+
+## 用户真机验收清单
+
+请在 iPhone 16 Pro / iOS 27 + 微信输入法验证：
+
+1. 输入框打开时从控制中心连续切换浅色→深色→浅色，键盘与页面同色且不反转。
+2. 切到系统设置改变主题，再返回 Odyssey，仍保持一致；收起再打开键盘也一致。
+3. 输入中文拼音尚未选字时切换主题，检查候选/组合输入、原文和光标是否保留。
+4. 点击顶部空白收起、再次输入、清除、语言互换、复制与打开设置均正常。
+
+模拟器不包含微信输入法扩展，真实扩展的候选栏和配色仍待以上真机确认；不得将其报告为已经修复验证。
+
 ## 验收证据
 
 - 协议检查点提交 `4e3f4992abd4778ff9bbf0742970101ebf2a8042` 通过 [CI 第 31 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34082212691)：110 项测试通过，IPA 打包成功；当时仍有 3 条 AppIntents 警告，不是本轮最终产物。
 - 键盘补丁和零警告配置等待新一轮 CI 验证。离线模拟器验证不能替代 iPhone 16 Pro + 微信输入法真机验证。
+- 中间检查点 `fe8fdc68204c411a62fe0467ec87d926dbe93e21` 通过 [CI 第 32 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34083704879)：117 项全部通过，编译/Actions 警告为 0。但完整日志复核发现 7 条旧 ImageRenderer 测试的 Invalid Configuration 诊断，因此不将该检查点视为完全干净的最终验收结果。
 
 ## 零警告处理
 
 - 项目未使用 App Intents/Siri/快捷指令，原有 3 条警告来自无依赖时仍执行的元数据提取任务。
 - 使用构建系统的 `LM_SKIP_METADATA_EXTRACTION = YES` 跳过无用任务，不开启 `LM_FILTER_WARNINGS`、不屏蔽日志、不添加无用 framework。以后接入 App Intents 时需移除此配置。
 - 以完整 CI 日志为准，待验证是否达到零警告。
+- Swift/C 系编译警告视为错误；构建脚本用 tee 保留完整测试/Release 日志，并对 warning、Invalid Configuration、状态更新和 FocusState 诊断设置失败检查。不过滤输出，原日志随测试附件上传。
 
 ## 官方依据
 

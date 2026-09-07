@@ -1,22 +1,10 @@
 import XCTest
 import SwiftUI
+import UIKit
 import Combine
 @testable import Odyssey
 
-/// 自动化测试离线渲染容器：为 ImageRenderer 隔离无活动 UIWindow 环境下的 FocusState 焦点子系统，
-/// 仅检查静态渲染；不验证真实键盘、焦点或原位确认区域点击。
-private struct TestRenderContainer<Content: View>: View {
-    let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .environment(\.enablesFocus, false)
-    }
-}
+/// 页面测试挂载真实 UIWindow；仅纯 SwiftUI 品牌组件使用离线 ImageRenderer。
 
 final class OdysseySmokeTests: XCTestCase {
 
@@ -124,88 +112,68 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertFalse(viewModel.translatedText.isEmpty, "Mock 翻译应生成非空译文")
     }
 
-    // 10. ContentView 在 393 × 852 浅色模式下可通过 ImageRenderer 渲染
+    // 10–13. Preserve light/dark page coverage, including native subviews.
     @MainActor
-    func testContentViewImageRendererLight() throws {
-        let targetWidth: CGFloat = 393
-        let targetHeight: CGFloat = 852
-        let view = TestRenderContainer {
-            ContentView()
+    func testContentViewMountedRenderingLight() async throws {
+        try await assertMountedRendering(ContentView(), style: .light, name: "ContentView-Light") {
+            self.hasSubview(ThemeAwareTextView.self, in: $0)
         }
-        .frame(width: targetWidth, height: targetHeight)
-        .preferredColorScheme(.light)
-
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        let uiImage = renderer.uiImage
-
-        let image = try XCTUnwrap(uiImage, "浅色模式下 ContentView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
-        XCTAssertGreaterThan(image.size.width, 0, "渲染宽度必须大于 0")
-        XCTAssertGreaterThan(image.size.height, 0, "渲染高度必须大于 0")
-        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0, "渲染宽度应与 frame 尺寸匹配")
-        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0, "渲染高度应与 frame 尺寸匹配")
     }
 
-    // 11. ContentView 在 393 × 852 深色模式下可通过 ImageRenderer 渲染
     @MainActor
-    func testContentViewImageRendererDark() throws {
-        let targetWidth: CGFloat = 393
-        let targetHeight: CGFloat = 852
-        let view = TestRenderContainer {
-            ContentView()
+    func testContentViewMountedRenderingDark() async throws {
+        try await assertMountedRendering(ContentView(), style: .dark, name: "ContentView-Dark") {
+            self.hasSubview(ThemeAwareTextView.self, in: $0)
         }
-        .frame(width: targetWidth, height: targetHeight)
-        .preferredColorScheme(.dark)
-
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        let uiImage = renderer.uiImage
-
-        let image = try XCTUnwrap(uiImage, "深色模式下 ContentView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
-        XCTAssertGreaterThan(image.size.width, 0, "深色模式渲染宽度必须大于 0")
-        XCTAssertGreaterThan(image.size.height, 0, "深色模式渲染高度必须大于 0")
-        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0, "深色模式渲染宽度应与 frame 尺寸匹配")
-        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0, "深色模式渲染高度应与 frame 尺寸匹配")
     }
 
-    // 12. SettingsView 在 393 × 852 浅色模式下可通过 ImageRenderer 渲染
     @MainActor
-    func testSettingsViewImageRendererLight() throws {
-        let targetWidth: CGFloat = 393
-        let targetHeight: CGFloat = 852
-        let view = SettingsView()
-            .frame(width: targetWidth, height: targetHeight)
-            .preferredColorScheme(.light)
-
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        let uiImage = renderer.uiImage
-
-        let image = try XCTUnwrap(uiImage, "浅色模式下 SettingsView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
-        XCTAssertGreaterThan(image.size.width, 0, "渲染宽度必须大于 0")
-        XCTAssertGreaterThan(image.size.height, 0, "渲染高度必须大于 0")
-        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0, "渲染宽度应与 frame 尺寸匹配")
-        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0, "渲染高度应与 frame 尺寸匹配")
+    func testSettingsViewMountedRenderingLight() async throws {
+        let store = APIConfigurationStore(configurationStorage: MockConfigurationStorage(), keychainService: MockKeychainService())
+        try await assertMountedRendering(SettingsView(store: store), style: .light, name: "Settings-Light") {
+            self.hasSubview(UICollectionView.self, in: $0)
+        }
     }
 
-    // 13. SettingsView 在 393 × 852 深色模式下可通过 ImageRenderer 渲染
     @MainActor
-    func testSettingsViewImageRendererDark() throws {
-        let targetWidth: CGFloat = 393
-        let targetHeight: CGFloat = 852
-        let view = SettingsView()
-            .frame(width: targetWidth, height: targetHeight)
-            .preferredColorScheme(.dark)
+    func testSettingsViewMountedRenderingDark() async throws {
+        let store = APIConfigurationStore(configurationStorage: MockConfigurationStorage(), keychainService: MockKeychainService())
+        try await assertMountedRendering(SettingsView(store: store), style: .dark, name: "Settings-Dark") {
+            self.hasSubview(UICollectionView.self, in: $0)
+        }
+    }
 
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        let uiImage = renderer.uiImage
+    @MainActor
+    private func assertMountedRendering<Content: View>(
+        _ view: Content, style: UIUserInterfaceStyle, name: String, ready: (UIView) -> Bool
+    ) async throws {
+        let fixture = try MountedWindowFixture(rootView: view)
+        defer { fixture.close() }
+        let size = CGSize(width: 393, height: 852)
+        fixture.window.frame = CGRect(origin: .zero, size: size)
+        fixture.host.view.frame = fixture.window.bounds
+        fixture.window.overrideUserInterfaceStyle = style
+        try await fixture.awaitCondition { ready(fixture.host.view) }
+        // Allow native Form/NavigationStack to complete the current layout transaction.
+        try await Task.sleep(for: .milliseconds(100))
+        fixture.host.view.layoutIfNeeded()
+        XCTAssertEqual(fixture.host.view.traitCollection.userInterfaceStyle, style)
+        let image = UIGraphicsImageRenderer(size: size).image { _ in
+            XCTAssertTrue(fixture.host.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true))
+        }
+        XCTAssertGreaterThan(image.size.width, 0)
+        XCTAssertGreaterThan(image.size.height, 0)
+        XCTAssertEqual(image.size.width, size.width, accuracy: 1.0)
+        XCTAssertEqual(image.size.height, size.height, accuracy: 1.0)
+        let attachment = XCTAttachment(image: image)
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
 
-        let image = try XCTUnwrap(uiImage, "深色模式下 SettingsView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
-        XCTAssertGreaterThan(image.size.width, 0, "深色模式渲染宽度必须大于 0")
-        XCTAssertGreaterThan(image.size.height, 0, "深色模式渲染高度必须大于 0")
-        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0, "深色模式渲染宽度应与 frame 尺寸匹配")
-        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0, "深色模式渲染高度应与 frame 尺寸匹配")
+    @MainActor
+    private func hasSubview<T: UIView>(_ type: T.Type, in view: UIView) -> Bool {
+        view is T || view.subviews.contains { hasSubview(type, in: $0) }
     }
 
     // 14. OdysseyBrandTitle 在浅色模式下可通过 ImageRenderer 成功渲染
@@ -534,65 +502,28 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertEqual(viewModel.saveSuccessMessage, "已安全清除 API Key")
     }
 
-    // 27. APIConfigurationView 在 393 × 852 浅色模式下可通过 ImageRenderer 渲染
+    // 27–28. Real native fields, with isolated storage and no FocusState bypass.
     @MainActor
-    func testAPIConfigurationViewImageRendererLight() throws {
-        let targetWidth: CGFloat = 393
-        let targetHeight: CGFloat = 852
-        let storage = MockConfigurationStorage()
-        let keychain = MockKeychainService()
-        let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
+    func testAPIConfigurationViewMountedRenderingLight() async throws {
+        let store = APIConfigurationStore(configurationStorage: MockConfigurationStorage(), keychainService: MockKeychainService())
         let viewModel = APIConfigurationViewModel(store: store)
-
-        let view = TestRenderContainer {
-            APIConfigurationView(viewModel: viewModel)
-        }
-        .frame(width: targetWidth, height: targetHeight)
-        .preferredColorScheme(.light)
-
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        let uiImage = renderer.uiImage
-
-        let image = try XCTUnwrap(uiImage, "浅色模式下 APIConfigurationView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
-        XCTAssertGreaterThan(image.size.width, 0)
-        XCTAssertGreaterThan(image.size.height, 0)
-        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0)
-        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0)
+        try await assertMountedRendering(
+            NavigationStack { APIConfigurationView(viewModel: viewModel) }, style: .light, name: "APIConfiguration-Light"
+        ) { self.hasSubview(UITextField.self, in: $0) }
     }
 
-    // 28. APIConfigurationView 在 393 × 852 深色模式下可通过 ImageRenderer 渲染
     @MainActor
-    func testAPIConfigurationViewImageRendererDark() throws {
-        let targetWidth: CGFloat = 393
-        let targetHeight: CGFloat = 852
-        let storage = MockConfigurationStorage()
-        let keychain = MockKeychainService()
-        let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
+    func testAPIConfigurationViewMountedRenderingDark() async throws {
+        let store = APIConfigurationStore(configurationStorage: MockConfigurationStorage(), keychainService: MockKeychainService())
         let viewModel = APIConfigurationViewModel(store: store)
-
-        let view = TestRenderContainer {
-            APIConfigurationView(viewModel: viewModel)
-        }
-        .frame(width: targetWidth, height: targetHeight)
-        .preferredColorScheme(.dark)
-
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        let uiImage = renderer.uiImage
-
-        let image = try XCTUnwrap(uiImage, "深色模式下 APIConfigurationView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
-        XCTAssertGreaterThan(image.size.width, 0)
-        XCTAssertGreaterThan(image.size.height, 0)
-        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0)
-        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0)
+        try await assertMountedRendering(
+            NavigationStack { APIConfigurationView(viewModel: viewModel) }, style: .dark, name: "APIConfiguration-Dark"
+        ) { self.hasSubview(UITextField.self, in: $0) }
     }
 
-    // 29. SettingsView 配置完整状态在 393 × 852 模式下可通过 ImageRenderer 渲染
+    // 29. SettingsView 配置完整状态在 393 × 852 模式下真实渲染
     @MainActor
-    func testSettingsViewConfiguredImageRenderer() throws {
-        let targetWidth: CGFloat = 393
-        let targetHeight: CGFloat = 852
+    func testSettingsViewConfiguredMountedRendering() async throws {
         let config = APIConfiguration(
             apiFormat: .openAIResponses,
             baseURL: "https://api.openai.com/v1",
@@ -604,19 +535,9 @@ final class OdysseySmokeTests: XCTestCase {
         ])
         let store = APIConfigurationStore(configurationStorage: storage, keychainService: keychain)
 
-        let view = SettingsView(store: store)
-            .frame(width: targetWidth, height: targetHeight)
-            .preferredColorScheme(.light)
-
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2.0
-        let uiImage = renderer.uiImage
-
-        let image = try XCTUnwrap(uiImage, "配置完整状态下 SettingsView 必须成功通过 ImageRenderer 渲染出非空 UIImage")
-        XCTAssertGreaterThan(image.size.width, 0)
-        XCTAssertGreaterThan(image.size.height, 0)
-        XCTAssertEqual(image.size.width, targetWidth, accuracy: 1.0)
-        XCTAssertEqual(image.size.height, targetHeight, accuracy: 1.0)
+        try await assertMountedRendering(SettingsView(store: store), style: .light, name: "Settings-Configured") {
+            self.hasSubview(UICollectionView.self, in: $0)
+        }
     }
 
     // 30. 原位确认的回调测试（非真实点击）：取消零次删除，确认一次删除。

@@ -32,7 +32,7 @@ xcodebuild test \
     -resultBundlePath "$BUILD_DIR/TestResults.xcresult" \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGN_IDENTITY=""
+    CODE_SIGN_IDENTITY="" 2>&1 | tee "$BUILD_DIR/TestBuild.log"
 
 # 4. Build Release for Generic iOS Device
 echo "==> Building Release for generic/platform=iOS..."
@@ -45,7 +45,17 @@ xcodebuild build \
     CONFIGURATION_BUILD_DIR="$BUILD_DIR/Release-iphoneos" \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGN_IDENTITY=""
+    CODE_SIGN_IDENTITY="" 2>&1 | tee "$BUILD_DIR/ReleaseBuild.log"
+
+# Keep complete logs visible. Fail on warnings/known SwiftUI runtime diagnostics,
+# including diagnostics that do not carry a literal "warning:" prefix.
+echo "==> Checking build logs for warnings and invalid SwiftUI configurations..."
+if grep -Eni '(^|[[:space:]])warning:|\[Invalid Configuration\]|Modifying state during view update|Accessing FocusState' \
+    "$BUILD_DIR/TestBuild.log" "$BUILD_DIR/ReleaseBuild.log"; then
+    echo "ERROR: Warning/runtime diagnostic gate failed; see the unfiltered logs above." >&2
+    exit 1
+fi
+echo "✓ Warning/runtime diagnostic gate passed"
 
 # Verify build output
 if [[ ! -d "$APP_DIR" ]]; then

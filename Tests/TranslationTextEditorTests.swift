@@ -8,7 +8,7 @@ final class TranslationTextEditorTests: XCTestCase {
     func testInitialAppearanceFollowsWindowWithoutOpeningKeyboard() async throws {
         for style in [UIUserInterfaceStyle.light, .dark] {
             let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
-            let fixture = try EditorWindowFixture(nativeView: editor, style: style)
+            let fixture = try MountedWindowFixture(nativeView: editor, style: style)
             defer { fixture.close() }
             try await fixture.awaitStyle(style, editor: editor)
             XCTAssertFalse(editor.isFirstResponder)
@@ -21,7 +21,7 @@ final class TranslationTextEditorTests: XCTestCase {
     @MainActor
     func testRepeatedThemeChangesPreserveResponderTextAndSelection() async throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
-        let fixture = try EditorWindowFixture(nativeView: editor)
+        let fixture = try MountedWindowFixture(nativeView: editor)
         defer { fixture.close() }
         editor.text = "你好，Odyssey 👋"
         XCTAssertTrue(editor.becomeFirstResponder())
@@ -41,7 +41,7 @@ final class TranslationTextEditorTests: XCTestCase {
     @MainActor
     func testThemeRefreshDoesNotDiscardMarkedText() async throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
-        let fixture = try EditorWindowFixture(nativeView: editor)
+        let fixture = try MountedWindowFixture(nativeView: editor)
         defer { fixture.close() }
         editor.text = "中文组合输入："
         XCTAssertTrue(editor.becomeFirstResponder())
@@ -67,7 +67,7 @@ final class TranslationTextEditorTests: XCTestCase {
     @MainActor
     func testForegroundRefreshKeepsCurrentThemeAndResponder() throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
-        let fixture = try EditorWindowFixture(nativeView: editor, style: .dark)
+        let fixture = try MountedWindowFixture(nativeView: editor, style: .dark)
         defer { fixture.close() }
         editor.text = "保留原文"
         XCTAssertTrue(editor.becomeFirstResponder())
@@ -82,7 +82,7 @@ final class TranslationTextEditorTests: XCTestCase {
     @MainActor
     func testDismissThenReopenUsesLatestTheme() async throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
-        let fixture = try EditorWindowFixture(nativeView: editor)
+        let fixture = try MountedWindowFixture(nativeView: editor)
         defer { fixture.close() }
         editor.text = "重新打开后仍保留"
         editor.applyFocus(true)
@@ -101,7 +101,7 @@ final class TranslationTextEditorTests: XCTestCase {
     @MainActor
     func testSwiftUIBindingSupportsTypingClearAndFocusInBothDirections() async throws {
         let state = EditorTestState()
-        let fixture = try EditorWindowFixture(rootView: EditorTestHarness(state: state))
+        let fixture = try MountedWindowFixture(rootView: EditorTestHarness(state: state))
         defer { fixture.close() }
         try await fixture.awaitCondition { self.findEditor(in: fixture.host.view) != nil }
         let editor = try XCTUnwrap(findEditor(in: fixture.host.view))
@@ -125,7 +125,7 @@ final class TranslationTextEditorTests: XCTestCase {
     @MainActor
     func testHomepageKeepsSameNativeEditorAcrossThemesAndRenders() async throws {
         let model = TranslationViewModel(sourceText: "首页原文 👋", translatedText: "Homepage result")
-        let fixture = try EditorWindowFixture(rootView: TranslationView(viewModel: model))
+        let fixture = try MountedWindowFixture(rootView: TranslationView(viewModel: model))
         defer { fixture.close() }
         try await fixture.awaitCondition { self.findEditor(in: fixture.host.view) != nil }
         let original = try XCTUnwrap(findEditor(in: fixture.host.view))
@@ -182,7 +182,7 @@ private struct EditorTestHarness: View {
 }
 
 @MainActor
-private final class EditorWindowFixture {
+final class MountedWindowFixture {
     let window: UIWindow
     let host: UIViewController
     private let previousKeyWindow: UIWindow?

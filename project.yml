@@ -6,6 +6,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: "YES"
+    GCC_TREAT_WARNINGS_AS_ERRORS: "YES"
     TARGETED_DEVICE_FAMILY: "1"
     # No App Intents/Siri/Shortcuts in this target. Restore extraction if they are added.
     # Skip the unused task, not its warnings (LM_FILTER_WARNINGS remains disabled).

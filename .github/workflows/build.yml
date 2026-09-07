@@ -56,6 +56,8 @@ jobs:
           path: |
             build/TestResults.xcresult
             build/TestAttachments
+            build/TestBuild.log
+            build/ReleaseBuild.log
           if-no-files-found: ignore
 
       - name: Upload Unsigned IPA Artifact
