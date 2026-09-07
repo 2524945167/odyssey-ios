@@ -148,7 +148,7 @@ final class OdysseySmokeTests: XCTestCase {
         _ view: Content, style: UIUserInterfaceStyle, name: String, ready: (UIView) -> Bool
     ) async throws {
         let fixture = try MountedWindowFixture(rootView: view)
-        defer { fixture.close() }
+        addTeardownBlock { try await fixture.close() }
         let size = CGSize(width: 393, height: 852)
         fixture.window.frame = CGRect(origin: .zero, size: size)
         fixture.host.view.frame = fixture.window.bounds

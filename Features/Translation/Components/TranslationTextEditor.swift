@@ -26,19 +26,7 @@ struct TranslationTextEditor: UIViewRepresentable {
 
     func updateUIView(_ uiView: ThemeAwareTextView, context: Context) {
         context.coordinator.parent = self
-        context.coordinator.isApplyingUpdate = true
-        defer { context.coordinator.isApplyingUpdate = false }
-
-        // Resigning may commit marked text. Do this before applying an explicit clear/swap.
-        uiView.applyFocus(isFocused?.wrappedValue)
-        if uiView.text != text, uiView.markedTextRange == nil {
-            let selection = uiView.selectedRange
-            uiView.text = text
-            let length = (text as NSString).length
-            let location = min(selection.location, length)
-            uiView.selectedRange = NSRange(location: location, length: min(selection.length, length - location))
-        }
-        uiView.synchronizeKeyboardAppearance()
+        context.coordinator.scheduleUpdate(uiView)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: ThemeAwareTextView, context: Context) -> CGSize? {
@@ -48,6 +36,7 @@ struct TranslationTextEditor: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ uiView: ThemeAwareTextView, coordinator: Coordinator) {
+        coordinator.cancelUpdate()
         uiView.delegate = nil
         uiView.resignFirstResponder()
     }
@@ -56,8 +45,36 @@ struct TranslationTextEditor: UIViewRepresentable {
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: TranslationTextEditor
         var isApplyingUpdate = false
+        private var updateTask: Task<Void, Never>?
 
         init(_ parent: TranslationTextEditor) { self.parent = parent }
+
+        func cancelUpdate() {
+            updateTask?.cancel()
+            updateTask = nil
+        }
+
+        func scheduleUpdate(_ view: ThemeAwareTextView) {
+            cancelUpdate()
+            // Responder changes can invalidate SwiftUI's keyboard safe area. Perform them
+            // after the current updateUIView/layout transaction, using the latest bindings.
+            updateTask = Task { @MainActor [weak self, weak view] in
+                guard !Task.isCancelled, let self, let view, view.delegate === self else { return }
+                self.isApplyingUpdate = true
+                defer { self.isApplyingUpdate = false; self.updateTask = nil }
+                let text = self.parent.text
+                // Resigning may commit marked text; an explicit clear/swap wins afterwards.
+                view.applyFocus(self.parent.isFocused?.wrappedValue)
+                if view.text != text, view.markedTextRange == nil {
+                    let selection = view.selectedRange
+                    view.text = text
+                    let length = (text as NSString).length
+                    let location = min(selection.location, length)
+                    view.selectedRange = NSRange(location: location, length: min(selection.length, length - location))
+                }
+                view.synchronizeKeyboardAppearance()
+            }
+        }
 
         func textViewDidChange(_ textView: UITextView) {
             guard !isApplyingUpdate, parent.text != textView.text else { return }

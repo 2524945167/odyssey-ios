@@ -50,7 +50,7 @@ xcodebuild build \
 # Keep complete logs visible. Fail on warnings/known SwiftUI runtime diagnostics,
 # including diagnostics that do not carry a literal "warning:" prefix.
 echo "==> Checking build logs for warnings and invalid SwiftUI configurations..."
-if grep -Eni '(^|[[:space:]])warning:|\[Invalid Configuration\]|Modifying state during view update|Accessing FocusState' \
+if grep -Eni '(^|[[:space:]])warning:|\[Invalid Configuration\]|Modifying state during view update|Accessing FocusState|Unbalanced calls to begin/end appearance transitions|Cycle detected through attribute' \
     "$BUILD_DIR/TestBuild.log" "$BUILD_DIR/ReleaseBuild.log"; then
     echo "ERROR: Warning/runtime diagnostic gate failed; see the unfiltered logs above." >&2
     exit 1

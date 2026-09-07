@@ -9,12 +9,13 @@ final class TranslationTextEditorTests: XCTestCase {
         for style in [UIUserInterfaceStyle.light, .dark] {
             let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
             let fixture = try MountedWindowFixture(nativeView: editor, style: style)
-            defer { fixture.close() }
+            addTeardownBlock { try await fixture.close() }
             try await fixture.awaitStyle(style, editor: editor)
             XCTAssertFalse(editor.isFirstResponder)
             let reloads = editor.reloadCount
             editor.synchronizeKeyboardAppearance()
             XCTAssertEqual(editor.reloadCount, reloads)
+            try await fixture.close()
         }
     }
 
@@ -22,7 +23,8 @@ final class TranslationTextEditorTests: XCTestCase {
     func testRepeatedThemeChangesPreserveResponderTextAndSelection() async throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
         let fixture = try MountedWindowFixture(nativeView: editor)
-        defer { fixture.close() }
+        addTeardownBlock { try await fixture.close() }
+        try await fixture.awaitCondition { true }
         editor.text = "你好，Odyssey 👋"
         XCTAssertTrue(editor.becomeFirstResponder())
         editor.selectedRange = NSRange(location: 3, length: 7)
@@ -42,7 +44,8 @@ final class TranslationTextEditorTests: XCTestCase {
     func testThemeRefreshDoesNotDiscardMarkedText() async throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
         let fixture = try MountedWindowFixture(nativeView: editor)
-        defer { fixture.close() }
+        addTeardownBlock { try await fixture.close() }
+        try await fixture.awaitCondition { true }
         editor.text = "中文组合输入："
         XCTAssertTrue(editor.becomeFirstResponder())
         editor.selectedRange = NSRange(location: (editor.text as NSString).length, length: 0)
@@ -65,10 +68,11 @@ final class TranslationTextEditorTests: XCTestCase {
     }
 
     @MainActor
-    func testForegroundRefreshKeepsCurrentThemeAndResponder() throws {
+    func testForegroundRefreshKeepsCurrentThemeAndResponder() async throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
         let fixture = try MountedWindowFixture(nativeView: editor, style: .dark)
-        defer { fixture.close() }
+        addTeardownBlock { try await fixture.close() }
+        try await fixture.awaitCondition { true }
         editor.text = "保留原文"
         XCTAssertTrue(editor.becomeFirstResponder())
         let reloads = editor.reloadCount
@@ -83,7 +87,8 @@ final class TranslationTextEditorTests: XCTestCase {
     func testDismissThenReopenUsesLatestTheme() async throws {
         let editor = TrackingThemeTextView(frame: .zero, textContainer: nil)
         let fixture = try MountedWindowFixture(nativeView: editor)
-        defer { fixture.close() }
+        addTeardownBlock { try await fixture.close() }
+        try await fixture.awaitCondition { true }
         editor.text = "重新打开后仍保留"
         editor.applyFocus(true)
         XCTAssertTrue(editor.isFirstResponder)
@@ -102,7 +107,7 @@ final class TranslationTextEditorTests: XCTestCase {
     func testSwiftUIBindingSupportsTypingClearAndFocusInBothDirections() async throws {
         let state = EditorTestState()
         let fixture = try MountedWindowFixture(rootView: EditorTestHarness(state: state))
-        defer { fixture.close() }
+        addTeardownBlock { try await fixture.close() }
         try await fixture.awaitCondition { self.findEditor(in: fixture.host.view) != nil }
         let editor = try XCTUnwrap(findEditor(in: fixture.host.view))
         state.isFocused = true
@@ -126,7 +131,7 @@ final class TranslationTextEditorTests: XCTestCase {
     func testHomepageKeepsSameNativeEditorAcrossThemesAndRenders() async throws {
         let model = TranslationViewModel(sourceText: "首页原文 👋", translatedText: "Homepage result")
         let fixture = try MountedWindowFixture(rootView: TranslationView(viewModel: model))
-        defer { fixture.close() }
+        addTeardownBlock { try await fixture.close() }
         try await fixture.awaitCondition { self.findEditor(in: fixture.host.view) != nil }
         let original = try XCTUnwrap(findEditor(in: fixture.host.view))
         for style in [UIUserInterfaceStyle.light, .dark] {
@@ -186,24 +191,27 @@ final class MountedWindowFixture {
     let window: UIWindow
     let host: UIViewController
     private let previousKeyWindow: UIWindow?
+    private let appearance: any MountedAppearanceTracking
+    private var isClosed = false
 
     convenience init<Content: View>(rootView: Content) throws {
-        try self.init(host: UIHostingController(rootView: rootView), style: .light)
+        try self.init(host: MountedHostingController(rootView: rootView), style: .light)
     }
 
     convenience init(nativeView: ThemeAwareTextView, style: UIUserInterfaceStyle = .light) throws {
-        let host = UIViewController()
+        let host = MountedNativeController()
         host.loadViewIfNeeded()
         nativeView.frame = CGRect(x: 16, y: 100, width: 370, height: 160)
         host.view.addSubview(nativeView)
         try self.init(host: host, style: style)
     }
 
-    private init(host: UIViewController, style: UIUserInterfaceStyle) throws {
+    private init(host: UIViewController & MountedAppearanceTracking, style: UIUserInterfaceStyle) throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         previousKeyWindow = scene.windows.first(where: \.isKeyWindow)
         window = UIWindow(windowScene: scene)
         self.host = host
+        appearance = host
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
         window.overrideUserInterfaceStyle = style
         window.rootViewController = host
@@ -211,11 +219,19 @@ final class MountedWindowFixture {
         host.view.layoutIfNeeded()
     }
 
-    func close() {
+    func close() async throws {
+        guard !isClosed else { return }
+        isClosed = true
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previousKeyWindow?.makeKey()
+        }
+        // UIKit completes appearance callbacks in a later transaction, not during layoutIfNeeded.
+        try await waitUntil { self.appearance.hasAppeared }
         host.view.endEditing(true)
         window.isHidden = true
-        window.rootViewController = nil
-        previousKeyWindow?.makeKey()
+        try await waitUntil { !self.appearance.hasAppeared }
     }
 
     func awaitStyle(_ style: UIUserInterfaceStyle, editor: ThemeAwareTextView) async throws {
@@ -226,6 +242,10 @@ final class MountedWindowFixture {
     }
 
     func awaitCondition(_ condition: () -> Bool) async throws {
+        try await waitUntil { self.appearance.hasAppeared && condition() }
+    }
+
+    private func waitUntil(_ condition: () -> Bool) async throws {
         for _ in 0..<200 {
             window.layoutIfNeeded()
             host.view.layoutIfNeeded()
@@ -234,5 +254,36 @@ final class MountedWindowFixture {
         }
         XCTFail("Mounted editor did not reach the expected state within 2 seconds")
         throw NSError(domain: "Odyssey.EditorTests", code: 1)
+    }
+}
+
+@MainActor
+private protocol MountedAppearanceTracking: AnyObject {
+    var hasAppeared: Bool { get }
+}
+
+@MainActor
+private final class MountedHostingController<Content: View>: UIHostingController<Content>, MountedAppearanceTracking {
+    private(set) var hasAppeared = false
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        hasAppeared = true
+    }
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        hasAppeared = false
+    }
+}
+
+@MainActor
+private final class MountedNativeController: UIViewController, MountedAppearanceTracking {
+    private(set) var hasAppeared = false
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        hasAppeared = true
+    }
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        hasAppeared = false
     }
 }
