@@ -3,7 +3,7 @@ import SwiftUI
 public struct TranslationView: View {
     @Environment(\.enablesFocus) private var enablesFocus
     @State public var viewModel: TranslationViewModel
-    @FocusState private var isInputFocused: Bool
+    @State private var isInputFocused: Bool = false
     @State private var showingSettings: Bool = false
     @State private var showLanguageToast: Bool = false
 

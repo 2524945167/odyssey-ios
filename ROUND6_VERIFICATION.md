@@ -20,12 +20,19 @@
 
 - 首页当前使用 SwiftUI TextEditor；生产代码未发现强制 preferredColorScheme、keyboardAppearance 或全局 UIAppearance 设置。
 - 无本地 Xcode/微信输入法运行环境，不能声称已经复现或确认系统/输入法根因。
-- 已向用户询问是否允许把首页输入控件局部封装为原生 UITextView，保持现有外观和交互、不设置全局键盘样式。获得确认前不实施此调整。
+- 用户已明确授权把首页输入控件局部封装为原生 UITextView，保持现有外观和交互、不设置全局键盘样式，并要求本轮以零警告为目标。
 - 必须检查主题连续切换、焦点、光标、中文组合输入和文本保留；不得用强制失焦再聚焦或按主题重建控件掩盖问题。
 
 ## 验收证据
 
-待 CI 和真机结果补充。离线模拟器验证不能替代 iPhone 16 Pro + 微信输入法真机验证。
+- 协议检查点提交 `4e3f4992abd4778ff9bbf0742970101ebf2a8042` 通过 [CI 第 31 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34082212691)：110 项测试通过，IPA 打包成功；当时仍有 3 条 AppIntents 警告，不是本轮最终产物。
+- 键盘补丁和零警告配置等待新一轮 CI 验证。离线模拟器验证不能替代 iPhone 16 Pro + 微信输入法真机验证。
+
+## 零警告处理
+
+- 项目未使用 App Intents/Siri/快捷指令，原有 3 条警告来自无依赖时仍执行的元数据提取任务。
+- 使用构建系统的 `LM_SKIP_METADATA_EXTRACTION = YES` 跳过无用任务，不开启 `LM_FILTER_WARNINGS`、不屏蔽日志、不添加无用 framework。以后接入 App Intents 时需移除此配置。
+- 以完整 CI 日志为准，待验证是否达到零警告。
 
 ## 官方依据
 
@@ -34,3 +41,4 @@
 - [Anthropic 流式事件及未知事件兼容说明](https://platform.claude.com/docs/en/build-with-claude/streaming)
 - [Apple 键盘外观](https://developer.apple.com/documentation/uikit/uitextinputtraits/keyboardappearance)
 - [Apple 输入视图刷新](https://developer.apple.com/documentation/uikit/uiresponder/reloadinputviews())
+- [Swift Build 元数据提取任务的跳过条件](https://github.com/swiftlang/swift-build/blob/main/Sources/SWBApplePlatform/AppIntentsMetadataTaskProducer.swift)

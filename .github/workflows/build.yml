@@ -41,12 +41,21 @@ jobs:
           chmod +x Scripts/build.sh
           bash Scripts/build.sh
 
+      - name: Export Test Screenshots
+        if: always()
+        run: |
+          if [[ -d build/TestResults.xcresult ]]; then
+            xcrun xcresulttool export attachments --path build/TestResults.xcresult --output-path build/TestAttachments
+          fi
+
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: Odyssey-test-results
-          path: build/TestResults.xcresult
+          path: |
+            build/TestResults.xcresult
+            build/TestAttachments
           if-no-files-found: ignore
 
       - name: Upload Unsigned IPA Artifact

@@ -2,12 +2,12 @@ import SwiftUI
 
 public struct UnifiedTranslationPanel: View {
     @Bindable public var viewModel: TranslationViewModel
-    var isInputFocused: FocusState<Bool>.Binding?
+    var isInputFocused: Binding<Bool>?
     @State private var showCopiedAlert: Bool = false
 
     public init(
         viewModel: TranslationViewModel,
-        isInputFocused: FocusState<Bool>.Binding? = nil
+        isInputFocused: Binding<Bool>? = nil
     ) {
         self.viewModel = viewModel
         self.isInputFocused = isInputFocused
@@ -46,18 +46,8 @@ public struct UnifiedTranslationPanel: View {
                             .allowsHitTesting(false)
                     }
 
-                    if let isInputFocused {
-                        TextEditor(text: $viewModel.sourceText)
-                            .font(.body)
-                            .focused(isInputFocused)
-                            .scrollContentBackground(.hidden)
-                            .frame(minHeight: 110)
-                    } else {
-                        TextEditor(text: $viewModel.sourceText)
-                            .font(.body)
-                            .scrollContentBackground(.hidden)
-                            .frame(minHeight: 110)
-                    }
+                    TranslationTextEditor(text: $viewModel.sourceText, isFocused: isInputFocused)
+                        .frame(minHeight: 110)
                 }
             }
             .padding(16)
