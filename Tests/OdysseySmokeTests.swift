@@ -100,16 +100,20 @@ final class OdysseySmokeTests: XCTestCase {
         XCTAssertEqual(mockClipboard.storedString, "Unit test mock copy string", "复制应写入注入的 MockClipboardWriter，不污染系统剪贴板")
     }
 
-    // 9. performMockTranslation 异步可等待性测试
+    // 9. 使用离线传输验证正式翻译任务可等待、正确恢复状态。
     @MainActor
-    func testPerformMockTranslationAsync() async {
-        let viewModel = TranslationViewModel(sourceText: "测试翻译")
+    func testPerformTranslationAsync() async throws {
+        let fixture = try TranslationTestFixture()
+        defer { fixture.cleanUp() }
+        let viewModel = fixture.model
         XCTAssertFalse(viewModel.isTranslating)
 
-        await viewModel.performMockTranslation()
+        let task = try XCTUnwrap(viewModel.startTranslation())
+        await task.value
 
-        XCTAssertFalse(viewModel.isTranslating, "Mock 翻译完成后 isTranslating 应自动重置为 false")
-        XCTAssertFalse(viewModel.translatedText.isEmpty, "Mock 翻译应生成非空译文")
+        XCTAssertFalse(viewModel.isTranslating)
+        XCTAssertEqual(viewModel.translatedText, StreamingFixtures.text)
+        XCTAssertEqual(viewModel.state, .finished(.completed))
     }
 
     // 10–13. Preserve light/dark page coverage, including native subviews.

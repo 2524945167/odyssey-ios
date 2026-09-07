@@ -11,13 +11,17 @@ public struct TranslateButton: View {
 
     public var body: some View {
         Button {
-            onTranslate()
+            if viewModel.isTranslating {
+                viewModel.cancelTranslation()
+            } else {
+                onTranslate()
+            }
         } label: {
             HStack(spacing: 8) {
                 if viewModel.isTranslating {
                     ProgressView()
                         .tint(.white)
-                    Text("正在翻译")
+                    Text("停止翻译")
                         .font(.system(size: 16, weight: .semibold))
                 } else {
                     Text("翻译")
@@ -29,10 +33,11 @@ public struct TranslateButton: View {
         }
         .buttonStyle(.glassProminent)
         .tint(.blue)
-        .disabled(!viewModel.canTranslate)
-        .opacity(viewModel.canTranslate ? 1.0 : 0.4)
+        .disabled(!viewModel.canTranslate && !viewModel.isTranslating)
+        .opacity(viewModel.canTranslate || viewModel.isTranslating ? 1.0 : 0.4)
         .padding(.horizontal, 20)
-        .accessibilityLabel("执行翻译")
+        .accessibilityLabel(viewModel.isTranslating ? "停止翻译" : "执行翻译")
+        .accessibilityIdentifier("translation.action")
     }
 }
 

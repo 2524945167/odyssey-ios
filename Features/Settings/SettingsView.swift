@@ -3,9 +3,12 @@ import SwiftUI
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject public var store: APIConfigurationStore
+    private let translationPreferences: TranslationPreferences
 
-    public init(store: APIConfigurationStore = APIConfigurationStore()) {
+    public init(store: APIConfigurationStore = APIConfigurationStore(),
+                translationPreferences: TranslationPreferences = TranslationPreferences()) {
         self.store = store
+        self.translationPreferences = translationPreferences
     }
 
     public var configurationSummary: String {
@@ -36,6 +39,12 @@ public struct SettingsView: View {
                 }
 
                 Section("翻译设置") {
+                    NavigationLink {
+                        TranslationOptionsView(viewModel: TranslationOptionsViewModel(preferences: translationPreferences))
+                    } label: {
+                        Label("翻译参数", systemImage: "slider.horizontal.3")
+                    }
+
                     NavigationLink {
                         PlaceholderDetailView(title: "术语表", icon: "character.book.closed")
                     } label: {

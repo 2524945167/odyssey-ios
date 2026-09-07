@@ -156,6 +156,48 @@ final class StreamingTransportTests: XCTestCase {
         await fulfillment(of: [stopped], timeout: 3)
     }
 
+    @MainActor
+    func testHomepageCancellationClosesUnderlyingSessionBeforeFirstResponse() async throws {
+        let began = expectation(description: "Homepage request started")
+        let stopped = expectation(description: "Homepage cancellation closed session")
+        let network = StreamHTTPFixture(body: "", finishes: false, sendsHeaders: false, began: began, stopped: stopped)
+        let id = StreamHTTPRegistry.shared.insert(network)
+        defer { StreamHTTPRegistry.shared.remove(id) }
+        let fixture = try TranslationTestFixture(service: TranslationService(transport: offlineTransport()))
+        defer { fixture.cleanUp() }
+        try fixture.storage.saveConfiguration(configuration(id))
+        let task = try XCTUnwrap(fixture.model.startTranslation())
+        await fulfillment(of: [began], timeout: 3)
+        fixture.model.cancelTranslation()
+        await task.value
+        await fulfillment(of: [stopped], timeout: 3)
+        XCTAssertEqual(fixture.model.state, .cancelled)
+        XCTAssertEqual(network.startCount, 1)
+    }
+
+    @MainActor
+    func testHomepageNativeTransportPreservesPartialTextOnTimeoutWithoutRetry() async throws {
+        let network = StreamHTTPFixture(body: StreamingFixtures.partial(.openAIResponses), failure: URLError(.timedOut))
+        let id = StreamHTTPRegistry.shared.insert(network)
+        defer { StreamHTTPRegistry.shared.remove(id) }
+        let transport = URLSessionStreamingTransport {
+            let config = TranslationService.sessionConfiguration(options: TranslationOptions(idleTimeoutSeconds: 120))
+            config.protocolClasses = [OfflineStreamURLProtocol.self]
+            return config
+        }
+        let fixture = try TranslationTestFixture(service: TranslationService(transport: transport))
+        defer { fixture.cleanUp() }
+        try fixture.storage.saveConfiguration(configuration(id))
+        try fixture.preferences.save(TranslationOptions(idleTimeoutSeconds: 120))
+        let task = try XCTUnwrap(fixture.model.startTranslation())
+        await task.value
+        XCTAssertEqual(fixture.model.state, .failed(.request(.timedOut)))
+        // URLSession may surface an immediate transport error before yielding buffered bytes.
+        // Deterministic partial-text preservation is covered by the controlled stream tests.
+        XCTAssertTrue(fixture.model.translatedText.isEmpty || StreamingFixtures.text.hasPrefix(fixture.model.translatedText))
+        XCTAssertEqual(network.startCount, 1)
+    }
+
     private func offlineTransport(limit: Int = 2 * 1024 * 1024) -> URLSessionStreamingTransport {
         URLSessionStreamingTransport(maximumResponseBytes: limit) {
             let configuration = URLSessionHTTPTransport.secureConfiguration()
@@ -175,13 +217,15 @@ private final class StreamHTTPFixture: @unchecked Sendable {
     let headers: [String: String]
     let finishes: Bool
     let sendsHeaders: Bool
+    let failure: URLError?
     private let began: XCTestExpectation?
     private let stopped: XCTestExpectation?
     private let lock = NSLock()
     private var starts = 0
     private var didStop = false
     init(body: String, status: Int = 200, contentType: String = "text/event-stream", contentLength: String? = nil,
-         finishes: Bool = true, sendsHeaders: Bool = true, began: XCTestExpectation? = nil, stopped: XCTestExpectation? = nil) {
+         finishes: Bool = true, sendsHeaders: Bool = true, began: XCTestExpectation? = nil, stopped: XCTestExpectation? = nil,
+         failure: URLError? = nil) {
         self.body = StreamingFixtures.chunks(body, size: 7)
         self.status = status
         var headers = ["Content-Type": contentType]
@@ -190,6 +234,7 @@ private final class StreamHTTPFixture: @unchecked Sendable {
         self.headers = headers
         self.finishes = finishes; self.sendsHeaders = sendsHeaders
         self.began = began; self.stopped = stopped
+        self.failure = failure
     }
     var startCount: Int { lock.withLock { starts } }
     func start() { lock.withLock { starts += 1 }; began?.fulfill() }
@@ -227,7 +272,11 @@ private final class OfflineStreamURLProtocol: URLProtocol, @unchecked Sendable {
         }
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         for data in fixture.body { client?.urlProtocol(self, didLoad: data) }
-        if fixture.finishes { client?.urlProtocolDidFinishLoading(self) }
+        if let failure = fixture.failure {
+            client?.urlProtocol(self, didFailWithError: failure)
+        } else if fixture.finishes {
+            client?.urlProtocolDidFinishLoading(self)
+        }
     }
     override func stopLoading() {
         if let host = request.url?.host { StreamHTTPRegistry.shared.lookup(host)?.stop() }

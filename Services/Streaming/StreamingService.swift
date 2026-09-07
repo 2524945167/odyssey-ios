@@ -1,6 +1,6 @@
 import Foundation
 
-/// 第 5 轮只提供可测试的基础设施；没有任何生产 UI 调用此入口。
+/// 可测试的协议与 SSE 基础设施；翻译业务通过 TranslationService 调用。
 public struct StreamingService: Sendable {
     private let transport: any HTTPByteStreaming
 
@@ -11,11 +11,13 @@ public struct StreamingService: Sendable {
     /// 增量可能先于失败出现，调用方只能以返回的终态认定完整成功。
     /// 本方法不累积队列、不自动重试；取消当前 Task 即取消传输。
     public func stream(configuration: APIConfiguration, apiKey: String, input: String, outputLimit: Int,
+                       instructions: String? = nil, idleTimeout: TimeInterval = ConnectionTestPolicy.timeout,
                        onText: @escaping @Sendable (String) async throws -> Void) async throws -> StreamCompletion {
         do {
             try Task.checkCancellation()
             let request = try StreamingRequestBuilder.build(configuration: configuration, apiKey: apiKey,
-                                                            input: input, outputLimit: outputLimit)
+                                                            input: input, outputLimit: outputLimit,
+                                                            instructions: instructions, idleTimeout: idleTimeout)
             let processor = StreamProcessor(format: configuration.apiFormat, onText: onText)
             try await transport.receive(request) { data in try await processor.receive(data) }
             try Task.checkCancellation()

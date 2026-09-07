@@ -64,6 +64,24 @@ public struct TranslationView: View {
                             viewModel: viewModel,
                             isInputFocused: enablesFocus ? $isInputFocused : nil
                         )
+
+                        if let message = viewModel.state.message {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(viewModel.isTranslating && viewModel.translatedText.isEmpty ? "等待译文…" : message)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityIdentifier("translation.status")
+                                if case .failed = viewModel.state {
+                                    Button("打开设置") {
+                                        dismissKeyboard()
+                                        showingSettings = true
+                                    }
+                                    .font(.footnote)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 24)
+                        }
                     }
                 }
                 .padding(.top, 4)
@@ -97,9 +115,7 @@ public struct TranslationView: View {
         .safeAreaInset(edge: .bottom) {
             TranslateButton(viewModel: viewModel) {
                 dismissKeyboard()
-                Task {
-                    await viewModel.performMockTranslation()
-                }
+                viewModel.startTranslation()
             }
             .padding(.top, 8)
             .padding(.bottom, 8)
@@ -110,8 +126,9 @@ public struct TranslationView: View {
             }
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView()
+            SettingsView(store: viewModel.configurationStore, translationPreferences: viewModel.preferences)
         }
+        .onDisappear { viewModel.cancelTranslation() }
     }
 }
 
