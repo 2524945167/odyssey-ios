@@ -49,8 +49,14 @@ public struct SettingsView: View {
                     NavigationLink {
                         TranslationTemplatesView(preferences: translationPreferences)
                     } label: {
-                        Label("翻译提示词", systemImage: "text.quote")
+                        HStack {
+                            Label("翻译风格", systemImage: "text.quote")
+                            Spacer()
+                            Text(translationPreferences.styles.selectedStyle.title)
+                                .font(.subheadline).foregroundStyle(.secondary)
+                        }
                     }
+                    .accessibilityIdentifier("settings.translationStyle")
 
                     NavigationLink {
                         PlaceholderDetailView(title: "术语表", icon: "character.book.closed")

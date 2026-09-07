@@ -8,6 +8,21 @@ public struct TranslationTemplatesView: View {
     public var body: some View {
         Form {
             Section {
+                Picker("当前风格", selection: Binding(
+                    get: { preferences.styles.selectedStyle },
+                    set: { preferences.selectStyle($0) }
+                )) {
+                    ForEach(TranslationStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("settings.translationStyle.picker")
+            } footer: {
+                Text("选择后自动保存，用于下一次翻译。不会重新翻译已有内容，也不会改变正在进行的请求。")
+            }
+
+            Section {
                 ForEach(TranslationStyle.allCases) { style in
                     NavigationLink {
                         TranslationTemplateEditorView(viewModel: TranslationTemplateViewModel(style: style, preferences: preferences))
@@ -24,12 +39,12 @@ public struct TranslationTemplatesView: View {
                     .accessibilityIdentifier("translationTemplate.\(style.rawValue)")
                 }
             } header: {
-                Text("风格模板")
+                Text("编辑提示词")
             } footer: {
-                Text("首页选择翻译风格，在这里编辑对应提示词。每份模板独立保存，不自动发起翻译；未填写自定义要求时，仅使用基础翻译规则。")
+                Text("每份模板可独立编辑、保存或恢复默认。未填写自定义要求时，仅使用基础翻译规则。")
             }
         }
-        .navigationTitle("翻译提示词")
+        .navigationTitle("翻译风格")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -19,13 +19,14 @@ public struct TranslationOptionsView: View {
                     Toggle("深度思考", isOn: $model.thinkingEnabled)
                         .accessibilityIdentifier("translationOptions.thinking")
                 } else {
-                    LabeledContent("深度思考", value: "当前接口未适配")
+                    LabeledContent("深度思考", value: "跟随模型默认")
+                        .accessibilityIdentifier("translationOptions.thinking.unmanaged")
                 }
             } footer: {
                 if TranslationThinkingPolicy.supports(configuration) {
-                    Text("默认关闭，保存后直接请求译文；开启可能增加等待和费用。已适配当前 Qwen3.7 Flash 官方接口，思考过程不显示在译文中。不会改变连接测试设置。")
+                    Text("默认关闭。开启后模型可进行额外推理，可能增加等待和消耗。保存后用于下一次翻译，译文中不显示思考过程。")
                 } else {
-                    Text("目前仅适配 Qwen3.7 Flash 官方 Chat Completions / Responses 接口。其他接口不发送思考控制参数，沿用服务商默认设置，不代表其思考已关闭。")
+                    Text("当前接口或模型没有已确认的通用思考开关，因此不额外发送控制参数。不代表思考已关闭，也不限制基础翻译功能。")
                 }
             }
 

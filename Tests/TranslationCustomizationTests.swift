@@ -23,7 +23,7 @@ final class TranslationCustomizationTests: XCTestCase {
     func testFiveStylesAndThinkingOffAreDefaultsWithoutWrites() throws {
         let fixture = try TranslationTestFixture()
         defer { fixture.cleanUp() }
-        XCTAssertEqual(TranslationStyle.allCases.map(\.title), ["自然表达", "口语聊天", "网络游戏聊天", "正式商务", "自定义"])
+        XCTAssertEqual(TranslationStyle.allCases.map(\.title), ["自然表达", "口语聊天", "网络聊天", "正式商务", "自定义"])
         XCTAssertEqual(Set(TranslationStyle.allCases.map(\.id)).count, 5)
         XCTAssertEqual(fixture.preferences.styles.selectedStyle, .natural)
         XCTAssertFalse(fixture.preferences.options.thinkingEnabled)
@@ -273,7 +273,7 @@ final class TranslationCustomizationTests: XCTestCase {
         }
     }
 
-    func testGamingTemplateUsesContextualAbbreviationsWithoutAddingMeaning() {
+    func testOnlineTemplateUsesContextualAbbreviationsWithoutAddingMeaning() {
         let prompt = TranslationStyle.gaming.defaultInstructions
         XCTAssertTrue(prompt.contains("语境合适"))
         XCTAssertTrue(prompt.contains("否则使用完整表达"))
@@ -281,6 +281,8 @@ final class TranslationCustomizationTests: XCTestCase {
         XCTAssertTrue(prompt.contains("不要给无关内容添加"))
         XCTAssertTrue(prompt.contains("不为缩短文本遗漏信息"))
         XCTAssertFalse(TranslationStyle.business.defaultInstructions.contains("brb"))
+        XCTAssertTrue(prompt.contains("社交平台、群聊、私信"))
+        XCTAssertTrue(prompt.contains("不把普通聊天强行改成游戏术语"))
     }
 
     @MainActor
@@ -386,7 +388,7 @@ final class TranslationCustomizationTests: XCTestCase {
             try await window.awaitStyle(style, editor: editor)
             XCTAssertTrue(find(ThemeAwareTextView.self, in: window.host.view) === editor)
             XCTAssertEqual(editor.text, fixture.model.sourceText)
-            try await screenshot(window, name: "Round8-Styles-\(style == .dark ? "Dark" : "Light")")
+            try await screenshot(window, name: "Round8_1-Homepage-\(style == .dark ? "Dark" : "Light")")
         }
         try await window.close()
     }
@@ -402,7 +404,7 @@ final class TranslationCustomizationTests: XCTestCase {
             window.window.overrideUserInterfaceStyle = style
             try await window.awaitCondition { self.find(UITextView.self, in: window.host.view) != nil }
             XCTAssertEqual(find(UITextView.self, in: window.host.view)?.text, TranslationStyle.gaming.defaultInstructions)
-            try await screenshot(window, name: "Round8-Template-\(style == .dark ? "Dark" : "Light")")
+            try await screenshot(window, name: "Round8_1-Template-\(style == .dark ? "Dark" : "Light")")
             try await window.close()
         }
     }
@@ -423,7 +425,56 @@ final class TranslationCustomizationTests: XCTestCase {
             XCTAssertFalse(try XCTUnwrap(find(UISwitch.self, in: window.host.view)).isOn)
             XCTAssertFalse(model.thinkingEnabled)
             XCTAssertNil(fixture.defaults.object(forKey: TranslationPreferences.optionsKey))
-            try await screenshot(window, name: "Round8-Thinking-\(style == .dark ? "Dark" : "Light")")
+            try await screenshot(window, name: "Round8_1-Thinking-\(style == .dark ? "Dark" : "Light")")
+            try await window.close()
+        }
+    }
+
+    @MainActor
+    func testStyleSettingsMountedLightAndDarkPreserveSharedSelection() async throws {
+        let fixture = try TranslationTestFixture()
+        defer { fixture.cleanUp() }
+        fixture.preferences.selectStyle(.gaming)
+        let stored = fixture.defaults.data(forKey: TranslationPreferences.stylesKey)
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let window = try MountedWindowFixture(rootView: NavigationStack {
+                TranslationTemplatesView(preferences: fixture.preferences)
+            })
+            addTeardownBlock { try await window.close() }
+            window.window.overrideUserInterfaceStyle = style
+            try await window.awaitCondition { self.find(UIScrollView.self, in: window.host.view) != nil }
+            XCTAssertEqual(fixture.preferences.styles.selectedStyle.title, "网络聊天")
+            XCTAssertEqual(fixture.defaults.data(forKey: TranslationPreferences.stylesKey), stored)
+            try await screenshot(window, name: "Round8_1-StyleSettings-\(style == .dark ? "Dark" : "Light")")
+            try await window.close()
+
+            let settings = try MountedWindowFixture(rootView: SettingsView(store: fixture.store, translationPreferences: fixture.preferences))
+            addTeardownBlock { try await settings.close() }
+            settings.window.overrideUserInterfaceStyle = style
+            try await settings.awaitCondition { self.find(UIScrollView.self, in: settings.host.view) != nil }
+            try await screenshot(settings, name: "Round8_1-Settings-\(style == .dark ? "Dark" : "Light")")
+            try await settings.close()
+        }
+    }
+
+    @MainActor
+    func testUnmanagedThinkingMountedHasNoMisleadingToggleAndDoesNotResetPreference() async throws {
+        let fixture = try TranslationTestFixture()
+        defer { fixture.cleanUp() }
+        try fixture.preferences.save(TranslationOptions(thinkingEnabled: true))
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let model = TranslationOptionsViewModel(preferences: fixture.preferences)
+            let window = try MountedWindowFixture(rootView: NavigationStack {
+                TranslationOptionsView(viewModel: model, configuration: APIConfiguration(
+                    apiFormat: .openAIChatCompletions, baseURL: "https://example.invalid/v1", modelID: "custom-model"))
+            })
+            addTeardownBlock { try await window.close() }
+            window.window.overrideUserInterfaceStyle = style
+            try await window.awaitCondition { self.find(UIScrollView.self, in: window.host.view) != nil }
+            XCTAssertNil(find(UISwitch.self, in: window.host.view))
+            XCTAssertTrue(model.thinkingEnabled)
+            XCTAssertTrue(fixture.preferences.options.thinkingEnabled)
+            try await screenshot(window, name: "Round8_1-UnmanagedThinking-\(style == .dark ? "Dark" : "Light")")
             try await window.close()
         }
     }

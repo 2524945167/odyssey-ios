@@ -26,7 +26,8 @@ public enum StreamingRequestBuilder {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
             let model = configuration.modelID.trimmingCharacters(in: .whitespacesAndNewlines)
             let encoder = JSONEncoder()
-            let thinking = TranslationThinkingPolicy.supports(configuration) ? thinkingEnabled : nil
+            let control = TranslationThinkingPolicy.control(for: configuration)
+            let thinking = control != nil ? thinkingEnabled : nil
             switch configuration.apiFormat {
             case .openAIResponses:
                 request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
@@ -38,12 +39,15 @@ public enum StreamingRequestBuilder {
                 var messages = instructions.map { [Message(role: "system", content: $0)] } ?? []
                 messages.append(Message(role: "user", content: input))
                 request.httpBody = try encoder.encode(ChatBody(model: model, messages: messages, max_completion_tokens: outputLimit,
-                                                              enable_thinking: thinking))
+                                                              enable_thinking: control == .booleanThinking ? thinking : nil,
+                                                              reasoning_effort: control == .chatEffort ? thinking.map { $0 ? "medium" : "none" } : nil,
+                                                              thinking: control == .typedThinking ? thinking.map { Thinking(type: $0 ? "enabled" : "disabled") } : nil))
             case .anthropicMessages:
                 request.setValue(key, forHTTPHeaderField: "x-api-key")
                 request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
                 request.httpBody = try encoder.encode(MessagesBody(model: model, messages: [Message(role: "user", content: input)],
-                                                                  system: instructions, max_tokens: outputLimit))
+                                                                  system: instructions, max_tokens: outputLimit,
+                                                                  thinking: control == .adaptiveThinking ? thinking.map { Thinking(type: $0 ? "adaptive" : "disabled") } : nil))
             }
             return request
         } catch { throw StreamingError.sanitized(error) }
@@ -51,6 +55,7 @@ public enum StreamingRequestBuilder {
 
     private struct Message: Encodable { let role: String; let content: String }
     private struct Reasoning: Encodable { let effort: String }
+    private struct Thinking: Encodable { let type: String }
     private struct ResponsesBody: Encodable {
         let model: String; let input: String; let instructions: String?; let max_output_tokens: Int
         let reasoning: Reasoning?
@@ -59,10 +64,13 @@ public enum StreamingRequestBuilder {
     private struct ChatBody: Encodable {
         let model: String; let messages: [Message]; let max_completion_tokens: Int
         let enable_thinking: Bool?
+        let reasoning_effort: String?
+        let thinking: Thinking?
         let stream = true; let store = false
     }
     private struct MessagesBody: Encodable {
         let model: String; let messages: [Message]; let system: String?; let max_tokens: Int
+        let thinking: Thinking?
         let stream = true
     }
 }

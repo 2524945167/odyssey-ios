@@ -60,8 +60,6 @@ public struct TranslationView: View {
                             }
                         )
 
-                        TranslationStyleSelector(viewModel: viewModel, onSelect: dismissKeyboard)
-
                         UnifiedTranslationPanel(
                             viewModel: viewModel,
                             isInputFocused: enablesFocus ? $isInputFocused : nil
