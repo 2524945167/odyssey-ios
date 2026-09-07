@@ -46,7 +46,11 @@ struct MessagesStreamDecoder: Sendable {
                 noteText(text)
                 return StreamStep(text: text)
             }
-            // 推理/签名/工具输入不当作文本；未知增量类型不导致协议切换。
+            // 已知非文本增量不进入译文；未知内容增量可能包含无法解释的输出，
+            // 可以继续接收但不能把缺失内容的结果标为完整成功。未知元数据事件仍可忽略。
+            if !["thinking_delta", "signature_delta", "input_json_delta"].contains(root.delta.type) {
+                unsupported = true
+            }
             return StreamStep()
         case "content_block_stop":
             let root = try event.decode(BlockStop.self)

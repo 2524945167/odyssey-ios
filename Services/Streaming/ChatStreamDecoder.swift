@@ -1,6 +1,7 @@
 import Foundation
 
 struct ChatStreamDecoder: Sendable {
+    private var completionID: String?
     private var hasText = false
     private var refused = false
     private var unsupported = false
@@ -22,6 +23,11 @@ struct ChatStreamDecoder: Sendable {
         if chunk.error != nil { throw StreamingError.generationFailed }
         guard chunk.object == "chat.completion.chunk", let choices = chunk.choices else {
             throw StreamingError.invalidEvent
+        }
+        // 兼容网关省略 ID 的既有行为；一旦提供 ID，不得把另一条生成混入当前结果。
+        if let id = chunk.id {
+            guard !id.isEmpty, completionID.map({ $0 == id }) ?? true else { throw StreamingError.invalidEvent }
+            completionID = id
         }
         // include_usage 可产生 choices=[]；它不代表结束，也不生成任何文本。
         if choices.isEmpty { return StreamStep() }
@@ -45,6 +51,7 @@ struct ChatStreamDecoder: Sendable {
 
     private struct Marker: Decodable {}
     private struct Chunk: Decodable {
+        let id: String?
         let object: String?; let choices: [Choice]?; let error: Marker?
     }
     private struct Choice: Decodable {

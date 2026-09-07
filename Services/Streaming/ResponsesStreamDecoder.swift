@@ -16,6 +16,7 @@ struct ResponsesStreamDecoder: Sendable {
     private var responseID: String?
     private var lastSequence: Int?
     private var receivedText = ""
+    private var outputItemIDs: [Int: String] = [:]
     private var refused = false
     private var finished = false
 
@@ -43,6 +44,10 @@ struct ResponsesStreamDecoder: Sendable {
             guard delta.output_index >= 0, delta.content_index >= 0, !delta.item_id.isEmpty else {
                 throw StreamingError.invalidEvent
             }
+            guard outputItemIDs[delta.output_index].map({ $0 == delta.item_id }) ?? true else {
+                throw StreamingError.invalidEvent
+            }
+            outputItemIDs[delta.output_index] = delta.item_id
             receivedText += delta.delta
             return StreamStep(text: delta.delta)
         case "response.refusal.delta", "response.refusal.done":
