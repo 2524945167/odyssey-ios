@@ -230,7 +230,9 @@ final class MountedWindowFixture {
         // UIKit completes appearance callbacks in a later transaction, not during layoutIfNeeded.
         try await waitUntil { self.appearance.hasAppeared }
         host.view.endEditing(true)
-        window.isHidden = true
+        // Detach the controller while the window is still visible. Hiding a UIWindow
+        // alone does not guarantee delivery of its root controller's disappearance.
+        window.rootViewController = nil
         try await waitUntil { !self.appearance.hasAppeared }
     }
 
