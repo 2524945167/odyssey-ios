@@ -5,7 +5,8 @@ import Foundation
 public enum StreamingRequestBuilder {
     public static func build(configuration: APIConfiguration, apiKey: String,
                              input: String, outputLimit: Int, instructions: String? = nil,
-                             idleTimeout: TimeInterval = ConnectionTestPolicy.timeout) throws -> URLRequest {
+                             idleTimeout: TimeInterval = ConnectionTestPolicy.timeout,
+                             thinkingEnabled: Bool? = nil) throws -> URLRequest {
         do {
             guard outputLimit > 0, idleTimeout.isFinite, idleTimeout > 0,
                   !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -25,16 +26,19 @@ public enum StreamingRequestBuilder {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
             let model = configuration.modelID.trimmingCharacters(in: .whitespacesAndNewlines)
             let encoder = JSONEncoder()
+            let thinking = TranslationThinkingPolicy.supports(configuration) ? thinkingEnabled : nil
             switch configuration.apiFormat {
             case .openAIResponses:
                 request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
                 request.httpBody = try encoder.encode(ResponsesBody(model: model, input: input, instructions: instructions,
-                                                                   max_output_tokens: outputLimit))
+                                                                   max_output_tokens: outputLimit,
+                                                                   reasoning: thinking.map { Reasoning(effort: $0 ? "medium" : "none") }))
             case .openAIChatCompletions:
                 request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
                 var messages = instructions.map { [Message(role: "system", content: $0)] } ?? []
                 messages.append(Message(role: "user", content: input))
-                request.httpBody = try encoder.encode(ChatBody(model: model, messages: messages, max_completion_tokens: outputLimit))
+                request.httpBody = try encoder.encode(ChatBody(model: model, messages: messages, max_completion_tokens: outputLimit,
+                                                              enable_thinking: thinking))
             case .anthropicMessages:
                 request.setValue(key, forHTTPHeaderField: "x-api-key")
                 request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
@@ -46,12 +50,15 @@ public enum StreamingRequestBuilder {
     }
 
     private struct Message: Encodable { let role: String; let content: String }
+    private struct Reasoning: Encodable { let effort: String }
     private struct ResponsesBody: Encodable {
         let model: String; let input: String; let instructions: String?; let max_output_tokens: Int
+        let reasoning: Reasoning?
         let stream = true; let store = false
     }
     private struct ChatBody: Encodable {
         let model: String; let messages: [Message]; let max_completion_tokens: Int
+        let enable_thinking: Bool?
         let stream = true; let store = false
     }
     private struct MessagesBody: Encodable {

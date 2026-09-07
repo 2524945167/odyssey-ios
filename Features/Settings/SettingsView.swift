@@ -40,9 +40,16 @@ public struct SettingsView: View {
 
                 Section("翻译设置") {
                     NavigationLink {
-                        TranslationOptionsView(viewModel: TranslationOptionsViewModel(preferences: translationPreferences))
+                        TranslationOptionsView(viewModel: TranslationOptionsViewModel(preferences: translationPreferences),
+                                               configuration: store.configurationStorage.loadConfiguration())
                     } label: {
                         Label("翻译参数", systemImage: "slider.horizontal.3")
+                    }
+
+                    NavigationLink {
+                        TranslationTemplatesView(preferences: translationPreferences)
+                    } label: {
+                        Label("翻译提示词", systemImage: "text.quote")
                     }
 
                     NavigationLink {

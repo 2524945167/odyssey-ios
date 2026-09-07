@@ -60,6 +60,8 @@ public struct TranslationView: View {
                             }
                         )
 
+                        TranslationStyleSelector(viewModel: viewModel, onSelect: dismissKeyboard)
+
                         UnifiedTranslationPanel(
                             viewModel: viewModel,
                             isInputFocused: enablesFocus ? $isInputFocused : nil
@@ -129,6 +131,7 @@ public struct TranslationView: View {
             SettingsView(store: viewModel.configurationStore, translationPreferences: viewModel.preferences)
         }
         .onDisappear { viewModel.cancelTranslation() }
+        .onChange(of: viewModel.preferences.styles) { previous, _ in viewModel.stylePreferencesDidChange(from: previous) }
     }
 }
 

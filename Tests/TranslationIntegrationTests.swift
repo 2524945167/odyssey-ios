@@ -17,7 +17,7 @@ final class TranslationIntegrationTests: XCTestCase {
         XCTAssertEqual(reloaded.options, TranslationOptions(outputLimit: 16384, idleTimeoutSeconds: 120))
         XCTAssertEqual(probe.outputLimit, 512)
         let saved = try XCTUnwrap(fixture.defaults.dictionary(forKey: TranslationPreferences.optionsKey))
-        XCTAssertEqual(Set(saved.keys), ["outputLimit", "idleTimeoutSeconds"])
+        XCTAssertEqual(Set(saved.keys), ["outputLimit", "idleTimeoutSeconds", "thinkingEnabled"])
         XCTAssertFalse(String(describing: saved).contains(TranslationTestFixture.key))
         XCTAssertNil(fixture.defaults.object(forKey: UserDefaultsConfigurationStorage.defaultStorageKey))
     }

@@ -2,16 +2,33 @@ import SwiftUI
 
 public struct TranslationOptionsView: View {
     @State private var viewModel: TranslationOptionsViewModel
+    private let configuration: APIConfiguration?
     @FocusState private var focusedField: Field?
     private enum Field: Hashable { case output, timeout }
 
-    public init(viewModel: TranslationOptionsViewModel = TranslationOptionsViewModel()) {
+    public init(viewModel: TranslationOptionsViewModel = TranslationOptionsViewModel(), configuration: APIConfiguration? = nil) {
         _viewModel = State(initialValue: viewModel)
+        self.configuration = configuration
     }
 
     public var body: some View {
         @Bindable var model = viewModel
         Form {
+            Section {
+                if TranslationThinkingPolicy.supports(configuration) {
+                    Toggle("深度思考", isOn: $model.thinkingEnabled)
+                        .accessibilityIdentifier("translationOptions.thinking")
+                } else {
+                    LabeledContent("深度思考", value: "当前接口未适配")
+                }
+            } footer: {
+                if TranslationThinkingPolicy.supports(configuration) {
+                    Text("默认关闭，保存后直接请求译文；开启可能增加等待和费用。已适配当前 Qwen3.7 Flash 官方接口，思考过程不显示在译文中。不会改变连接测试设置。")
+                } else {
+                    Text("目前仅适配 Qwen3.7 Flash 官方 Chat Completions / Responses 接口。其他接口不发送思考控制参数，沿用服务商默认设置，不代表其思考已关闭。")
+                }
+            }
+
             Section {
                 TextField("8192", text: $model.outputLimitText)
                     .keyboardType(.numberPad)

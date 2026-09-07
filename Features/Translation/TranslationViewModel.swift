@@ -82,6 +82,21 @@ public final class TranslationViewModel {
         clipboard.setString(translatedText)
     }
 
+    public func selectStyle(_ style: TranslationStyle) {
+        guard !isTranslating, preferences.styles.selectedStyle != style else { return }
+        let previous = preferences.styles
+        preferences.selectStyle(style)
+        stylePreferencesDidChange(from: previous)
+    }
+
+    public func stylePreferencesDidChange(from previous: TranslationStyleConfiguration) {
+        guard !isTranslating, !translatedText.isEmpty else { return }
+        let current = preferences.styles
+        guard previous.selectedStyle != current.selectedStyle ||
+                previous.instructions(for: previous.selectedStyle) != current.instructions(for: current.selectedStyle) else { return }
+        state = .styleChanged
+    }
+
     /// 只由显式按钮操作调用。原文、语言、配置、参数均为本次请求的快照。
     /// 返回可等待任务供测试使用；生产界面不再包含模拟翻译路径。
     @discardableResult
@@ -126,6 +141,10 @@ public final class TranslationViewModel {
                 }
                 guard !Task.isCancelled, let self, self.activeID == id else { return }
                 self.state = .finished(result)
+                let latest = self.preferences.options
+                if latest.style != options.style || latest.styleInstructions != options.styleInstructions {
+                    self.state = .styleChanged
+                }
                 self.activeID = nil
                 self.runningTask = nil
             } catch {

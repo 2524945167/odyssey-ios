@@ -12,12 +12,13 @@ public struct StreamingService: Sendable {
     /// 本方法不累积队列、不自动重试；取消当前 Task 即取消传输。
     public func stream(configuration: APIConfiguration, apiKey: String, input: String, outputLimit: Int,
                        instructions: String? = nil, idleTimeout: TimeInterval = ConnectionTestPolicy.timeout,
+                       thinkingEnabled: Bool? = nil,
                        onText: @escaping @Sendable (String) async throws -> Void) async throws -> StreamCompletion {
         do {
             try Task.checkCancellation()
             let request = try StreamingRequestBuilder.build(configuration: configuration, apiKey: apiKey,
                                                             input: input, outputLimit: outputLimit,
-                                                            instructions: instructions, idleTimeout: idleTimeout)
+                                                            instructions: instructions, idleTimeout: idleTimeout, thinkingEnabled: thinkingEnabled)
             let processor = StreamProcessor(format: configuration.apiFormat, onText: onText)
             try await transport.receive(request) { data in try await processor.receive(data) }
             try Task.checkCancellation()

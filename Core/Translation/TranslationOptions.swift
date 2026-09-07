@@ -8,11 +8,19 @@ public struct TranslationOptions: Equatable, Sendable {
 
     public let outputLimit: Int
     public let idleTimeoutSeconds: Int
+    public let thinkingEnabled: Bool
+    public let style: TranslationStyle
+    public let styleInstructions: String
 
     public init(outputLimit: Int = Self.defaultOutputLimit,
-                idleTimeoutSeconds: Int = Self.defaultIdleTimeoutSeconds) {
+                idleTimeoutSeconds: Int = Self.defaultIdleTimeoutSeconds,
+                thinkingEnabled: Bool = false, style: TranslationStyle = .natural,
+                styleInstructions: String? = nil) {
         self.outputLimit = outputLimit
         self.idleTimeoutSeconds = idleTimeoutSeconds
+        self.thinkingEnabled = thinkingEnabled
+        self.style = style
+        self.styleInstructions = styleInstructions ?? style.defaultInstructions
     }
 
     public var isValid: Bool { outputLimit > 0 && idleTimeoutSeconds > 0 }

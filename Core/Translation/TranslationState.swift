@@ -21,6 +21,7 @@ public enum TranslationState: Equatable, Sendable {
     case failed(TranslationFailure)
     case cancelled
     case sourceChanged
+    case styleChanged
 
     public var message: String? {
         switch self {
@@ -37,6 +38,7 @@ public enum TranslationState: Equatable, Sendable {
         case .failed(let failure): return failure.message
         case .cancelled: return "已停止，保留已有译文；服务端可能仍会产生费用。"
         case .sourceChanged: return "原文或语言已修改，当前译文仅供参考，请重新翻译。"
+        case .styleChanged: return "翻译风格已修改，当前译文仍为原风格；点击翻译以应用新设置。"
         }
     }
 }
