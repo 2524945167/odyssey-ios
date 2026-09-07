@@ -1,6 +1,6 @@
 # Odyssey 第 7 轮：真实流式翻译接入首页
 
-状态：本地实现与测试已编写，等待云端编译、测试和产物验证。尚未进行真实模型调用或真机验收。
+状态：实现、云端编译、142 项测试及未签名 IPA 下载校验已通过，等待用户真机验收。尚未进行真实模型调用或真机验收；未开始第 8 轮。
 
 ## 已确认范围
 
@@ -20,13 +20,35 @@
 6. 修改原文或交换方向会停止旧请求并标注现有结果仅供参考；清除会停止并清空两侧。复制仍可复制已有部分译文。页面移除时取消本地请求，不新增后台执行保证。
 7. 测试使用隔离 UserDefaults、内存 Keychain/剪贴板、可控延迟服务、离线 SSE 和拦截全部请求的 URLProtocol；不访问真实模型服务。
 
-## 自动验收（待 CI）
+## 自动验收（已通过）
 
 - 保留第 6 轮原有 117 项测试场景；旧模拟翻译用例替换为真实业务 + 离线传输的异步测试。
 - 新增默认值/持久化隔离/输入校验/显式保存、三协议提示词与字段、超时与隐私配置、流式首页集成、停止/重复点击/迟到回调、原文修改与交换、配置快照、异常脱敏、原生网络取消及页面渲染测试。
 - 页面通过真实 UIWindow 挂载、等待生命周期后截图，保持浅深色与原生输入控件覆盖。
 - 原有编译/Actions 警告、SwiftUI 焦点/布局与测试生命周期诊断检查不放宽，不隐藏日志。
 - 超时参数检查和模拟超时异常不等同于已在真实服务上等待满 60/300 秒；最终报告区分测试范围。
+
+## CI 与产物证据
+
+- 代码提交：[`c9524fafe1b7aa8f4dce3297be09caf0f6c15219`](https://github.com/2524945167/odyssey-ios/commit/c9524fafe1b7aa8f4dce3297be09caf0f6c15219)。后续验收文档提交不改变该构建产物。
+- [GitHub Actions 第 36 次运行](https://github.com/2524945167/odyssey-ios/actions/runs/34092020577)：Run ID `34092020577`，Job ID `101647334440`，结果 `completed / success`。
+- 环境：`xcode-27` Runner；macOS 26.5.2；Xcode 27.0（27A5252f）；iPhone 17 模拟器 / iOS 27.0。
+- 共 **142 项测试通过，0 失败**：保留原有 117 项场景，新增 23 项翻译集成测试及 2 项原生传输测试。测试用例累计耗时 46.993 秒，套件经过时间 54.172 秒。
+- 密钥扫描通过；`TEST SUCCEEDED`、`BUILD SUCCEEDED` 与 warning/runtime diagnostic gate 均通过。
+- 完整作业日志及下载后的构建日志复核：编译 `warning:` **0**，Actions `##[warning]` **0**，已知 SwiftUI 焦点/状态/布局及测试生命周期诊断 **0**。没有过滤或隐藏原始日志。
+- 模拟器仍有 PointerUI/XPC、键盘渲染、缺少触觉库资源等系统诊断，以及 **1 次 KeyboardTaskQueue 超时提示**；相关测试通过。这不等同于全部运行日志没有提示，也不能替代微信输入法真机验证。
+
+产物：
+
+- Artifact 名称 `Odyssey-unsigned.ipa`，ID `10007291410`。
+- 外层 ZIP：484,752 字节；SHA-256 `730acf9a297f1b543d165366652d28e4ae1ed6e57876699e965423105ad494e9`，与 GitHub Artifact digest 一致。
+- 内部 IPA：489,499 字节；SHA-256 `561f7a024bbf3d18ac924a064a2005709667484da326557efc2c2a3ac9f66dd6`，与 CI 输出一致。
+- 下载后重新校验 ZIP/IPA 完整性、`Payload/Odyssey.app/Info.plist` 和非空可执行文件；Bundle ID 为 `com.kupetis.odyssey`。
+- 本地文件：`C:\Users\Kupetis\Downloads\Odyssey-Round7-run36\ipa\Odyssey-unsigned.ipa`。未签名、未安装；本轮没有读取或使用签名证书。
+- 测试 Artifact `Odyssey-test-results`，ID `10007290677`；SHA-256 `d5109a11b4f4cf1adaea0c4b9a09df5e89d5e937ab79bf1d45d3fad8475e27d5`，与 GitHub digest 一致。包含 xcresult、完整测试/Release 日志及 15 张截图。
+- 已人工查看新增参数页、流式首页的浅/深色共 4 张截图：默认 8192 / 60、5 分钟说明与保存操作可见，首页部分译文及“停止翻译”按钮可见，无明显遮挡。截图使用离线测试数据，不是实际模型翻译成果。
+
+本地环境是 Windows，没有 Xcode；iOS 编译和执行证据来自上述云端运行，不声称已在本机完成 Xcode 测试。
 
 ## 真机验收清单
 
